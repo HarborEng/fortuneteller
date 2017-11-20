@@ -21,48 +21,94 @@ Or install it yourself as:
 ## Usage
 
 ```ruby
-# Define whose finances we're simulating
-primary = FortuneTeller::Person.new(gender: :female, birthday: Date.parse('1958-03-02') )
-partner = FortuneTeller::Person.new(gender: :male, birthday: Date.parse('1960-05-20') )
-
 # Initialize FortuneTeller
-ft = FortuneTeller.new(primary: primary, partner: partner)
+sim = FortuneTeller.new
 
-ft.setFilingStatus(:married_filing_jointly)
+sim.primary = FortuneTeller::Person.new(
+  gender: :female,
+  birthday: Date.new(1964, 3, 2),
+  filing_status: :married_filing_jointly
+)
+
+sim.partner = FortuneTeller::Person.new(
+  gender: :male,
+  birthday: Date.new(1967, 5, 5),
+  filing_status: :married_filing_jointly
+)
 
 # Define primary's key events and holdings
-primary_retirement = Date.parse('2025-01-01')
+primary_retirement = Date.new(2032, 3, 1)
 
-account = FortuneTeller::Account.new(type: :_401k, balance: 10000000)
-primary_401k = ft.addAccount(account, :primary)
+account = FortuneTeller::Account.new(
+  holder: :primary,
+  type: :_401k,
+  balance: 500_000_00
+)
+primary_401k = sim.add_account(account)
 
-job = FortuneTeller::Job.new(salary: 6500000, end: primary_retirement)
-job.setSavingsPlan(percent: 5, match: 3, account_id: primary_401k)
-ft.addJob(job, :primary)
+job = FortuneTeller::Job.new(
+  holder: :primary,
+  salary: 100_000_00,
+  end_date: primary_retirement
+)
+savings_plan = FortuneTeller::SavingsPlans::Percent.new(
+  percent: 7,
+  match: 3,
+  account_id: primary_401k
+)
+job.add_savings_plan(savings_plan)
+sim.add_job(job)
 
-primary_ss = FortuneTeller::SocialSecurity.new(start: primary_retirement)
-ft.setSocialSecurity(primary_ss, :primary)
+primary_ss = FortuneTeller::SocialSecurity.new(
+  holder: :primary,
+  start_date: primary_retirement,
+  pia: 1000_00
+)
+sim.add_social_security(primary_ss)
 
 # Define partner's key events and holdings
-partner_retirement = Date.parse('2027-01-01')
+partner_retirement = Date.new(2032, 6, 1)
 
-account = FortuneTeller::Account.new(type: :_401k, balance: 20000000)
-partner_401k = ft.addAccount(account, :partner)
+account = FortuneTeller::Account.new(
+  holder: :partner,
+  type: :_401k,
+  balance: 200_000_00
+)
+partner_401k = sim.add_account(account)
 
-job = FortuneTeller::Job.new(salary: 6500000, end: partner_retirement)
-job.setSavingsPlan(percent: 9, match: 3, account_id: partner_401k)
-ft.addJob(job, :partner)
+job = FortuneTeller::Job.new(
+  holder: :partner,
+  salary: 75_000_00,
+  end_date: partner_retirement
+)
+savings_plan = FortuneTeller::SavingsPlans::Percent.new(
+  percent: 7,
+  match: 3,
+  account_id: partner_401k
+)
+job.add_savings_plan(savings_plan)
+sim.add_job(job)
 
-partner_ss = FortuneTeller::SocialSecurity.new(start: partner_retirement)
-ft.setSocialSecurity(partner_ss, :partner)
+partner_ss = FortuneTeller::SocialSecurity.new(
+  holder: :partner,
+  start_date: partner_retirement,
+  pia: 1000_00
+)
+sim.add_social_security(partner_ss)
 
-# Start by spending the leftovers (after tax and saving) and change to spending an exact amount in retirement
-spendingStrategy = FortuneTeller::SpendingStrategy.new(strategy: :remainder)
-spendingStrategy.schedule(primary_retirement, 'updateStrategy', :exact_before_inflation, ft.getTakeHomePay(:start))
-ft.setSpendingStrategy(spendingStrategy)
+# Start by spending the leftovers (after tax and saving) and change to
+# spending an exact amount in retirement
+
+spending = FortuneTeller::SpendingStrategy.new(strategy: :remainder)
+future_take_home_pay = (sim.calculate_take_home_pay(:start) * 0.8).floor
+spending.on(primary_retirement).update(
+  strategy: :exact,
+  amount: sim.inflating_int(future_take_home_pay)
+)
+sim.spending_strategy = spending
 
 # Run!
-results = ft.simulate
+sim.simulate
 ```
 
 ## Development
@@ -73,7 +119,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/fortuneteller. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/HarborEng/fortuneteller. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 ## License
 

@@ -6,6 +6,10 @@ module FortuneTeller
       @data.savings_plans = []
     end
 
+    def salary
+      @data.salary
+    end
+
     def calculate_take_home_pay
       salary = @data.salary
       plan = @data.savings_plans[0]

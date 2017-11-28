@@ -6,6 +6,14 @@ class FortuneTellerTest < Minitest::Test
     refute_nil ::FortuneTeller::VERSION
   end
 
+  def test_social_security
+    ss = FortuneTeller::Utils::SocialSecurity.new(
+        dob: Date.new(1959, 3, 2),
+        start_month: Date.new(2025, 3, 1)
+      )
+    ss.estimate_pia(current_salary: 100_000_00, annual_raise: 1.03)
+  end
+
   def test_simulation
     # Initialize FortuneTeller
     sim = FortuneTeller.new
@@ -18,12 +26,12 @@ class FortuneTellerTest < Minitest::Test
 
     sim.partner = FortuneTeller::Person.new(
       gender: :male,
-      birthday: Date.new(1967, 5, 5),
+      birthday: Date.new(1966, 5, 5),
       filing_status: :married_filing_jointly
     )
 
     # Define primary's key events and holdings
-    primary_retirement = Date.new(2032, 3, 1)
+    primary_retirement = Date.new(2031, 3, 1)
 
     account = FortuneTeller::Account.new(
       holder: :primary,
@@ -48,12 +56,11 @@ class FortuneTellerTest < Minitest::Test
     primary_ss = FortuneTeller::SocialSecurity.new(
       holder: :primary,
       start_date: primary_retirement,
-      pia: 1000_00
     )
     sim.add_social_security(primary_ss)
 
     # Define partner's key events and holdings
-    partner_retirement = Date.new(2032, 6, 1)
+    partner_retirement = Date.new(2033, 5, 1)
 
     account = FortuneTeller::Account.new(
       holder: :partner,
@@ -78,7 +85,7 @@ class FortuneTellerTest < Minitest::Test
     partner_ss = FortuneTeller::SocialSecurity.new(
       holder: :partner,
       start_date: partner_retirement,
-      pia: 1000_00
+      fra_pia: 1000_00
     )
     sim.add_social_security(partner_ss)
 

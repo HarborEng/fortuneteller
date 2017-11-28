@@ -105,8 +105,8 @@ module FortuneTeller
       key
     end
 
-    def retrieve_objects(type:, holder:)
-      @objects[type][holder]
+    def retrieve_objects(type:)
+      @objects[type]
     rescue NoMethodError
       {}
     end

@@ -23,7 +23,7 @@ module FortuneTeller
             salary_history[y] = (salary_history[y-1]*annual_raise).floor
           end
         end
-        salaries = salary_history.map{|y, s| [cbb(y), (s*indexing_factors[y]).floor].min }
+        salaries = salary_history.map{|y, s| ([cbb(y), s].min*indexing_factors[y]).floor }
         aime = (salaries.sort.last(35).reduce(:+)/(35.0*12)).floor
 
         if aime > bend_points[1]

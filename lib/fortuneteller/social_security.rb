@@ -43,7 +43,7 @@ module FortuneTeller
       else
         current_salary = plan.jobs.values.keep_if { |j| j.holder==@holder }.map(&:salary).sum
         puts "CURRENT SAL #{@holder} #{current_salary}"
-        calc.estimate_pia(current_salary: current_salary, annual_raise: 0.98)
+        calc.estimate_pia(current_salary: current_salary, annual_raise: 1.03)
       end
 
       benefit = calc.calculate_benefit

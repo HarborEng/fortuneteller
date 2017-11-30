@@ -1,8 +1,6 @@
 module FortuneTeller
   module Utils
 
-    # Calculates adjusted benefit from PIA
-    # Based on https://www.ssa.gov/oact/quickcalc/early_late.html 11/16/2017
     class SocialSecurity
       attr_accessor :pia
       
@@ -10,6 +8,7 @@ module FortuneTeller
         @dob = dob
         @adjusted_dob = (dob.day == 1 ? dob.yesterday : dob)
         @start_month = start_month.at_beginning_of_month
+        @cbb_map = {}
       end
 
       def estimate_pia(current_salary:, annual_raise:)
@@ -24,9 +23,8 @@ module FortuneTeller
             salary_history[y] = (salary_history[y-1]*annual_raise).floor
           end
         end
-        salaries = salary_history.map{|y, s| s*indexing_factors[y]}
+        salaries = salary_history.map{|y, s| [cbb(y), (s*indexing_factors[y]).floor].min }
         aime = (salaries.sort.last(35).reduce(:+)/(35.0*12)).floor
-        puts "AIME #{aime}"
 
         if aime > bend_points[1]
           pia_62 = (0.9*bend_points[0]+0.32*(bend_points[1]-bend_points[0])+0.15*(aime-bend_points[1])).floor
@@ -38,7 +36,7 @@ module FortuneTeller
 
         pia_adjusted = pia_62
         ((@dob.year+63)..@start_month.year).each do |y|
-          pia_adjusted = (pia_adjusted*(100+COLA_1975_START[y-1-1975])/100.0).floor
+          pia_adjusted = (pia_adjusted*cola(y-1)).floor
         end
 
         @pia = pia_adjusted
@@ -48,14 +46,11 @@ module FortuneTeller
         pia_adjusted = fra_pia
         if @start_month.year < full_retirement_month.year
           (@start_month.year..(full_retirement_month.year-1)).each do |y|
-            pia_adjusted = (pia_adjusted/((100+COLA_1975_START[y-1975])/100.0)).floor
+            pia_adjusted = (pia_adjusted/cola(y)).floor
           end
         elsif @start_month.year > full_retirement_month.year
-          puts "START GREATER"
           ((full_retirement_month.year+1)..@start_month.year).each do |y|
-            puts "START: #{@start_month.year}, YEAR: #{y}"
-            puts "PIA ADJ = #{pia_adjusted}"
-            pia_adjusted = (pia_adjusted*(100+COLA_1975_START[y-1-1975])/100.0).floor
+            pia_adjusted = (pia_adjusted*cola(y-1)).floor
           end
         end
         @pia = pia_adjusted
@@ -63,7 +58,6 @@ module FortuneTeller
 
       def calculate_benefit
         frm = full_retirement_month
-        puts "FRM: #{frm}"
         return @pia if @start_month == frm
 
         if(@start_month < frm)
@@ -78,6 +72,158 @@ module FortuneTeller
       end
 
       private
+
+      def awi(year) #average wage index
+        return AWI_1951_START[(year-1951)]
+      end
+
+      def cola(year) #cost of living ajustment
+        return (100+COLA_1975_START[year-1975])/100.0
+      end
+
+      def cbb(year) #contribution benefit base
+        # Ref: https://www.ssa.gov/oact/cola/cbbdet.html
+        return CBB_1937_TO_2018[(year-1937)] if year <= 2018
+        
+        return @cbb_map[year] unless @cbb_map[year].nil?
+
+        calc = (cbb(1994)*awi(year-2)/awi(1992)).floor
+        modulo = calc%300_00
+        if modulo < 150_00
+          calc -= modulo
+        else
+          calc += (300-modulo)
+        end
+
+        @cbb_map[year] = (calc > cbb(year-1) ? calc : cbb(year-1))
+      end
+
+      def bend_points
+        return @bend_points unless @bend_points.nil?
+
+        age_62_year = @dob.year+62
+        age_62_index = awi(age_62_year)
+        year_1979_index = awi(1979)
+        year_1979_bends = [18000, 108500]
+        @bend_points = [
+          (year_1979_bends[0].to_f*(age_62_index/year_1979_index)).floor,
+          (year_1979_bends[1].to_f*(age_62_index/year_1979_index)).floor,
+        ]
+      end
+
+      def indexing_factors
+        return @indexing_factors unless @indexing_factors.nil?
+
+        age_60_year = @dob.year+60
+        age_60_index = awi(age_60_year)
+        @indexing_factors = {}
+        (18..60).each do |age|
+          year = @dob.year+age
+          @indexing_factors[year] = age_60_index.to_f/awi(year)
+        end
+        (61..70).each do |age|
+          year = @dob.year+age
+          @indexing_factors[year] = 1.0          
+        end
+        @indexing_factors
+      end
+
+      def full_retirement_month
+        return @frm unless @frm.nil?
+
+        year = @adjusted_dob.year
+        frm = @adjusted_dob.at_beginning_of_month
+        if year <= 1938
+          @frm = frm.years_since(65)
+        elsif (year >= 1943 and year <= 1954)
+          @frm = frm.years_since(66)
+        elsif year >= 1960
+          @frm = frm.years_since(67)
+        else
+          t = TRANSITION_YEARS[year][0]
+          @frm = frm.years_since(t[0]).years_since(t[1])             
+        end     
+      end
+
+      def max_retirement_month
+        @adjusted_dob.at_beginning_of_month.years_since(70)
+      end
+
+      def min_retirement_month
+        if @adjusted_dob.day == 1
+          @adjusted_dob.years_since(62)
+        else
+          @adjusted_dob.at_beginning_of_month.years_since(62).months_since(1)
+        end
+      end
+
+      # Based on https://www.ssa.gov/oact/quickcalc/early_late.html 11/16/2017
+      def early_benefit(months:)
+        if months <= 36
+          multiplier = 100.0 - ((5.0 * months) / 9.0)
+        else
+          multiplier = 100.0 - 20.0 - ((5.0 * months) / 12.0)
+        end
+        puts "EARLY PIA: #{(pia*multiplier/100.0).floor}"
+        (@pia*multiplier/100.0).floor
+      end
+
+      # Based on https://www.ssa.gov/oact/quickcalc/early_late.html 11/16/2017
+      def late_benefit(months:)
+        year = @adjusted_dob.year
+        if year <= 1924
+          monthly = 6/24.0
+        elsif year <= 1942
+          monthly = DELAY_RATES[year]
+        else
+          monthly = 16.0/24.0
+        end
+        multiplier = 100.0 + (monthly*months)
+        puts "LATE PIA: #{(pia*multiplier/100.0).floor}"
+        (@pia*multiplier/100.0).floor
+      end
+
+      def month_diff(a, b)
+        (b.year * 12 + b.month) - (a.year * 12 + a.month)
+      end
+
+      def bounds_error(start:, min: nil, max: nil)
+        self.class::StartDateBounds.new(start: start, min: min, max: max)
+      end
+
+      def self.awi_projector
+        projected = []
+        projected_increases = {
+          # From https://www.ssa.gov/oact/TR/TRassum.html 
+          2017 => 3.9,
+          2018 => 4.8,
+          2019 => 4.5,
+          2020 => 4.3,
+          2021 => 4.2,
+          2022 => 3.9,
+          2023 => 3.7,
+          2024 => 3.8,
+          2025 => 3.8,
+          2026 => 3.8
+        }
+        last_awi = awi(2016)
+        (2017..2070).each do |year|
+          increase = projected_increases[[2026, year].min]
+          last_awi = (last_awi*((100+increase)/100.0)).floor
+          projected << last_awi
+        end
+        projected
+      end
+
+      class StartDateBounds < StandardError
+        def initialize(**kargs)
+          if not kargs[:max].nil?
+            super("Start #{kargs[:start]} is greater than max #{kargs[:max]}")
+          elsif not kargs[:min].nil?
+            super("Start #{kargs[:start]} is less than min #{kargs[:min]}")
+          end
+        end
+      end
 
       TRANSITION_YEARS = {
         1938 => [65, 2], 1939 => [65, 4], 1940 => [65, 6], 1941 => [65, 8],
@@ -131,131 +277,21 @@ module FortuneTeller
         2.6, 
       ]
 
-      def bend_points
-        return @bend_points unless @bend_points.nil?
-
-        age_62_year = @dob.year+62
-        age_62_index = AWI_1951_START[(age_62_year-1951)]
-        year_1979_index = AWI_1951_START[(1979-1951)]
-        year_1979_bends = [18000, 108500]
-        @bend_points = [
-          (year_1979_bends[0].to_f*(age_62_index/year_1979_index)).floor,
-          (year_1979_bends[1].to_f*(age_62_index/year_1979_index)).floor,
-        ]
-      end
-
-      def indexing_factors
-        return @indexing_factors unless @indexing_factors.nil?
-
-        age_60_year = @dob.year+60
-        age_60_index = AWI_1951_START[(age_60_year-1951)]
-        @indexing_factors = {}
-        (18..60).each do |age|
-          year = @dob.year+age
-          @indexing_factors[year] = age_60_index.to_f/AWI_1951_START[(year-1951)]
-        end
-        (61..70).each do |age|
-          year = @dob.year+age
-          @indexing_factors[year] = 1.0          
-        end
-        @indexing_factors
-      end
-
-      def full_retirement_month
-        return @frm unless @frm.nil?
-
-        year = @adjusted_dob.year
-        frm = @adjusted_dob.at_beginning_of_month
-        if year <= 1938
-          @frm = frm.years_since(65)
-        elsif (year >= 1943 and year <= 1954)
-          @frm = frm.years_since(66)
-        elsif year >= 1960
-          @frm = frm.years_since(67)
-        else
-          t = TRANSITION_YEARS[year][0]
-          @frm = frm.years_since(t[0]).years_since(t[1])             
-        end     
-      end
-
-      def max_retirement_month
-        @adjusted_dob.at_beginning_of_month.years_since(70)
-      end
-
-      def min_retirement_month
-        if @adjusted_dob.day == 1
-          @adjusted_dob.years_since(62)
-        else
-          @adjusted_dob.at_beginning_of_month.years_since(62).months_since(1)
-        end
-      end
-
-      def early_benefit(months:)
-        if months <= 36
-          multiplier = 100.0 - ((5.0 * months) / 9.0)
-        else
-          multiplier = 100.0 - 20.0 - ((5.0 * months) / 12.0)
-        end
-        puts "EARLY PIA: #{(pia*multiplier/100.0).floor}"
-        (@pia*multiplier/100.0).floor
-      end
-
-      def late_benefit(months:)
-        year = @adjusted_dob.year
-        if year <= 1924
-          monthly = 6/24.0
-        elsif year <= 1942
-          monthly = DELAY_RATES[year]
-        else
-          monthly = 16.0/24.0
-        end
-        multiplier = 100.0 + (monthly*months)
-        puts "LATE PIA: #{(pia*multiplier/100.0).floor}"
-        (@pia*multiplier/100.0).floor
-      end
-
-      def month_diff(a, b)
-        (b.year * 12 + b.month) - (a.year * 12 + a.month)
-      end
-
-      def bounds_error(start:, min: nil, max: nil)
-        self.class::StartDateBounds.new(start: start, min: min, max: max)
-      end
-
-      def self.awi_projector
-        projected = []
-        projected_increases = {
-          # From https://www.ssa.gov/oact/TR/TRassum.html 
-          2017 => 3.9,
-          2018 => 4.8,
-          2019 => 4.5,
-          2020 => 4.3,
-          2021 => 4.2,
-          2022 => 3.9,
-          2023 => 3.7,
-          2024 => 3.8,
-          2025 => 3.8,
-          2026 => 3.8
-        }
-        last_awi = AWI_1951_START[2016-1951]
-        (2017..2070).each do |year|
-          increase = projected_increases[[2026, year].min]
-          last_awi = (last_awi*((100+increase)/100.0)).floor
-          projected << last_awi
-        end
-        projected
-      end
-
-      class StartDateBounds < StandardError
-        def initialize(**kargs)
-          if not kargs[:max].nil?
-            super("Start #{kargs[:start]} is greater than max #{kargs[:max]}")
-          elsif not kargs[:min].nil?
-            super("Start #{kargs[:start]} is less than min #{kargs[:min]}")
-          end
-        end
-      end
+      CBB_1937_TO_2018 = [
+        # https://www.ssa.gov/oact/cola/cbb.html
+        300000, 300000, 300000, 300000, 300000, 300000, 300000, 300000, 300000, 
+        300000, 300000, 300000, 300000, 300000, 360000, 360000, 360000, 360000, 
+        420000, 420000, 420000, 420000, 480000, 480000, 480000, 480000, 480000, 
+        480000, 480000, 660000, 660000, 780000, 780000, 780000, 780000, 900000, 
+        1080000, 1320000, 1410000, 1530000, 1650000, 1770000, 2290000, 2590000, 
+        2970000, 3240000, 3570000, 3780000, 3960000, 4200000, 4380000, 4500000, 
+        4800000, 5130000, 5340000, 5550000, 5760000, 6060000, 6120000, 6270000, 
+        6540000, 6840000, 7260000, 7620000, 8040000, 8490000, 8700000, 8790000, 
+        9000000, 9420000, 9750000, 10200000, 10680000, 10680000, 10680000, 
+        11010000, 11370000, 11700000, 11850000, 11850000, 12720000, 12840000,       
+      ]
 
     end
   end
 end
+

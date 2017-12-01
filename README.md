@@ -1,6 +1,6 @@
 # FortuneTeller
 
-FortuneTeller is a personal finance simulator built and used by Harbor.
+FortuneTeller predicts your fortune. It is a personal finance simulator built and used by Harbor.
 
 ## Installation
 

@@ -12,6 +12,7 @@ module FortuneTeller
       end
 
       def estimate_pia(current_salary:, annual_raise:)
+        # https://www.ssa.gov/oact/progdata/retirebenefit1.html
         year = Date.today.year
         last_year = @start_month.year
         salary_history = {year => current_salary}
@@ -26,6 +27,7 @@ module FortuneTeller
         salaries = salary_history.map{|y, s| ([cbb(y), s].min*indexing_factors[y]).floor }
         aime = (salaries.sort.last(35).reduce(:+)/(35.0*12)).floor
 
+        # https://www.ssa.gov/oact/progdata/retirebenefit2.html
         if aime > bend_points[1]
           pia_62 = (0.9*bend_points[0]+0.32*(bend_points[1]-bend_points[0])+0.15*(aime-bend_points[1])).floor
         elsif aime > bend_points[0]

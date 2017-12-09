@@ -8,10 +8,11 @@ class FortuneTellerTest < Minitest::Test
 
   def test_social_security
     ss = FortuneTeller::Utils::SocialSecurity.new(
-        dob: Date.new(1959, 3, 2),
-        start_month: Date.new(2025, 3, 1)
+        dob: Date.new(1955, 12, 9),
+        start_month: Date.new(2018, 12, 1)
       )
-    ss.estimate_pia(current_salary: 100_000_00, annual_raise: 1.03)
+    pia = ss.estimate_pia(current_salary: 45_500_00, annual_raise: 1.03)
+    benefit = ss.calculate_benefit
   end
 
   def test_simulation

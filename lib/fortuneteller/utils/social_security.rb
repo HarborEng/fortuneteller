@@ -160,13 +160,13 @@ module FortuneTeller
       end
 
       # Based on https://www.ssa.gov/oact/quickcalc/early_late.html 11/16/2017
+      # https://www.ssa.gov/oact/quickcalc/earlyretire.html
       def early_benefit(months:)
         if months <= 36
           multiplier = 100.0 - ((5.0 * months) / 9.0)
         else
-          multiplier = 100.0 - 20.0 - ((5.0 * months) / 12.0)
+          multiplier = 100.0 - 20.0 - ((5.0 * (months-36)) / 12.0)
         end
-        puts "EARLY PIA: #{(pia*multiplier/100.0).floor}"
         (@pia*multiplier/100.0).floor
       end
 
@@ -181,7 +181,6 @@ module FortuneTeller
           monthly = 16.0/24.0
         end
         multiplier = 100.0 + (monthly*months)
-        puts "LATE PIA: #{(pia*multiplier/100.0).floor}"
         (@pia*multiplier/100.0).floor
       end
 

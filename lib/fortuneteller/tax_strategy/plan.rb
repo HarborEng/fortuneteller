@@ -1,6 +1,7 @@
 module FortuneTeller
-  module Job
+  module TaxStrategy
     class Plan < FortuneTeller::Base::Plan
+      
     end
   end
 end

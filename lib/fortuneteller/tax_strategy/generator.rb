@@ -1,5 +1,5 @@
 module FortuneTeller
-  module Job
+  module TaxStrategy
     class Generator < FortuneTeller::Base::Generator
       
     end

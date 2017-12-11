@@ -8,7 +8,7 @@ class FortuneTellerTest < Minitest::Test
   end
 
   def test_add_users
-    sim = FortuneTeller.new
+    sim = FortuneTeller.new(Date.today)
 
     sim.add_primary(
       gender: :female,
@@ -28,7 +28,7 @@ class FortuneTellerTest < Minitest::Test
 
   def test_simulation
     # Initialize FortuneTeller
-    sim = FortuneTeller.new
+    sim = FortuneTeller.new(Date.today)
 
     sim.add_primary(
       gender: :female,
@@ -41,10 +41,10 @@ class FortuneTellerTest < Minitest::Test
     )
 
     # Define primary's key events and holdings
-    primary_retirement = Date.new(2032, 3, 1)
+    primary_retirement = Date.new(2031, 3, 1)
 
     primary_401k = sim.add_account(:primary) do |plan|
-      plan.beginning.init(
+      plan.beginning.set(
         type: :_401k,
         balance: 500_000_00
       )
@@ -52,9 +52,8 @@ class FortuneTellerTest < Minitest::Test
 
     sim.add_job(:primary) do |plan|
       plan.beginning do |p|
-        p.init(
+        p.set(
           base: 100_000_00,
-          bonus: 15_000_00,
         )
         p.add_savings_plan(
           percent: 7,
@@ -75,7 +74,7 @@ class FortuneTellerTest < Minitest::Test
     partner_retirement = Date.new(2032, 3, 1)
 
     partner_401k = sim.add_account(:partner) do |plan|
-      plan.beginning.init(
+      plan.beginning.set(
         type: :_401k,
         balance: 500_000_00
       )
@@ -83,9 +82,8 @@ class FortuneTellerTest < Minitest::Test
 
     sim.add_job(:partner) do |plan|
       plan.beginning do |p|
-        p.init(
+        p.set(
           base: 100_000_00,
-          bonus: 15_000_00,
         )
         p.add_savings_plan(
           percent: 7,
@@ -106,18 +104,18 @@ class FortuneTellerTest < Minitest::Test
     # spending an exact amount in retirement
 
     sim.add_spending_strategy do |plan|
-      plan.beginning.init(
+      plan.beginning.set(
         strategy: :remainder
       )
-      future_take_home_pay = (sim.calculate_take_home_pay(:start) * 0.8).floor
-      plan.on(primary_retirement).update(
+      future_take_home_pay = (sim.calculate_take_home_pay(Date.today) * 0.8).floor
+      plan.on(primary_retirement).set(
         strategy: :exact,
         amount: sim.inflating_int(future_take_home_pay)
       )
     end
 
     sim.add_tax_strategy do |plan|
-      plan.beginning.init(
+      plan.beginning.set(
         primary: :married_filing_jointly,
         partner: :married_filing_jointly
       )

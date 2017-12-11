@@ -2,18 +2,18 @@ require 'active_support/core_ext/string/inflections.rb'
 require 'active_support/core_ext/module/introspection.rb'
 
 require 'fortuneteller/version'
-require 'fortuneteller/simulator'
 
+require 'fortuneteller/simulator'
 require 'fortuneteller/person'
 
-require 'fortuneteller/base/plan'
-require 'fortuneteller/base/generator'
+require 'fortuneteller/utils/inflating_int'
 
-require 'fortuneteller/account/plan'
-require 'fortuneteller/account/generator'
-
-require 'fortuneteller/job/plan'
-require 'fortuneteller/job/generator'
+%i[base account job social_security spending_strategy tax_strategy].each do |object_type|
+  require "fortuneteller/#{object_type}/day_plan"
+  require "fortuneteller/#{object_type}/generator"
+  require "fortuneteller/#{object_type}/plan"
+end
+require "fortuneteller/base/plan_reader"
 
 # require 'active_support/core_ext/date/calculations.rb'
 # require 'active_support/core_ext/object/json.rb'
@@ -39,7 +39,7 @@ require 'fortuneteller/job/generator'
 
 # A personal finance simulator
 module FortuneTeller
-  def self.new
-    Simulator.new
+  def self.new(beginning = Date.today)
+    Simulator.new(beginning)
   end
 end

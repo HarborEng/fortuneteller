@@ -1,5 +1,5 @@
 module FortuneTeller
-  module Job
+  module SocialSecurity
     class Generator < FortuneTeller::Base::Generator
       
     end

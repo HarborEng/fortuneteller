@@ -1,8 +1,28 @@
 module FortuneTeller
   module Base
     class Plan
-      def initialize(&block)
-        puts "IN INITIALIZE #{self.class}"
+      attr_accessor :day_plans
+      def initialize(beginning, &block)
+        @beginning = beginning
+        @day_plans = []
+        yield(self)
+      end
+
+      def on(date, &block)
+        if @day_plans.empty? or date > @day_plans.last.date
+          @day_plans << self.class.parent::DayPlan.new(date, &block)
+          @day_plans.last
+        else
+          raise "Plans must be made in order.  #{date} is not after #{@day_plans.last.date}"
+        end
+      end
+
+      def beginning(&block)
+        on(@beginning, &block)
+      end
+
+      def to_reader
+        FortuneTeller::Base::PlanReader.new(self)
       end
     end
   end

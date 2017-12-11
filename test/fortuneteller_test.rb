@@ -65,25 +65,23 @@ class FortuneTellerTest < Minitest::Test
     end
 
     sim.add_social_security(:primary) do |plan|
-      plan.on(primary_retirement).start(
-        pia: 1000_00
-      )
+      plan.on(primary_retirement).start
     end
 
     # Define partner's key events and holdings
-    partner_retirement = Date.new(2032, 3, 1)
+    partner_retirement = Date.new(2033, 5, 1)
 
     partner_401k = sim.add_account(:partner) do |plan|
       plan.beginning.set(
         type: :_401k,
-        balance: 500_000_00
+        balance: 200_000_00
       )
     end
 
     sim.add_job(:partner) do |plan|
       plan.beginning do |p|
         p.set(
-          base: 100_000_00,
+          base: 75_000_00,
         )
         p.add_savings_plan(
           percent: 7,

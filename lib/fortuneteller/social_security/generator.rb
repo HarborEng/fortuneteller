@@ -32,8 +32,9 @@ module FortuneTeller
           dob: simulator.send(@holder).birthday,
           start_month: start_month
         )
-        if not @fra_pia.nil?
-          calc.fra_pia = @fra_pia
+
+        if not plan.pia.nil?
+          calc.fra_pia = plan.pia
         else
           current_salary = simulator.jobs.values.keep_if { 
             |j| j.holder==@holder 

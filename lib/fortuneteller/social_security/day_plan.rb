@@ -1,9 +1,8 @@
 module FortuneTeller
   module SocialSecurity
     class DayPlan < FortuneTeller::Base::DayPlan
-      attr_accessor :base, :savings_plans
-
-      def start(pia:)
+      attr_reader :pia
+      def start(pia: nil)
         @pia = pia
       end
     end

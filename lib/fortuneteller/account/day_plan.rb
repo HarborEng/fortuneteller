@@ -1,7 +1,7 @@
 module FortuneTeller
   module Account
-    attr_accessor :type, :balance
     class DayPlan < FortuneTeller::Base::DayPlan
+      attr_accessor :type, :balance
       def set(type:, balance:)
         @type = type
         @balance = balance

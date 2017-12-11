@@ -1,11 +1,16 @@
 module FortuneTeller
   module Base
     class Plan
-      attr_accessor :day_plans
+      attr_reader :day_plans, :start_date, :end_date
       def initialize(beginning, &block)
         @beginning = beginning
         @day_plans = []
         yield(self)
+      end
+
+      def finalize
+        @start_date = @day_plans.first.date
+        @end_date = (@day_plans.last.stopped? ? @day_plans.last.date : nil)
       end
 
       def on(date, &block)

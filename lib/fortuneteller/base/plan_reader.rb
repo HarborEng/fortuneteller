@@ -14,10 +14,6 @@ module FortuneTeller
         end
         (@plan.day_plans.last.stopped? ? nil : @plan.day_plans.last)
       end
-
-      def beginning(&block)
-        on(@beginning, &block)
-      end
     end
   end
 end

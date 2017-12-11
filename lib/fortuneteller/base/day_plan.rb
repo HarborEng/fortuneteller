@@ -5,11 +5,8 @@ module FortuneTeller
       def initialize(date, &block)
         @date = date
         @stopped = false
-        if block_given?
-          yield(self)
-        else
-          self
-        end
+        yield(self) if block_given?
+        self
       end
 
       def stopped?

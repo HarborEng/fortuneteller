@@ -17,13 +17,13 @@ class FortuneTellerTest < Minitest::Test
 
     sim.add_partner(
       gender: :male,
-      birthday: Date.new(1967, 5, 5)
+      birthday: Date.new(1966, 5, 5)
     )
 
     assert_equal :female, sim.primary.gender
     assert_equal Date.new(1964, 3, 2), sim.primary.birthday
     assert_equal :male, sim.partner.gender
-    assert_equal Date.new(1967, 5, 5), sim.partner.birthday
+    assert_equal Date.new(1966, 5, 5), sim.partner.birthday
   end
 
   def test_simulation
@@ -37,7 +37,7 @@ class FortuneTellerTest < Minitest::Test
 
     sim.add_partner(
       gender: :male,
-      birthday: Date.new(1967, 5, 5)
+      birthday: Date.new(1966, 5, 5)
     )
 
     # Define primary's key events and holdings

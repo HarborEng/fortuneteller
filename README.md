@@ -22,90 +22,96 @@ Or install it yourself as:
 
 ```ruby
 # Initialize FortuneTeller
-sim = FortuneTeller.new
+sim = FortuneTeller.new(Date.today)
 
-sim.primary = FortuneTeller::Person.new(
+sim.add_primary(
   gender: :female,
-  birthday: Date.new(1964, 3, 2),
-  filing_status: :married_filing_jointly
+  birthday: Date.new(1964, 3, 2)
 )
 
-sim.partner = FortuneTeller::Person.new(
+sim.add_partner(
   gender: :male,
-  birthday: Date.new(1967, 5, 5),
-  filing_status: :married_filing_jointly
+  birthday: Date.new(1966, 5, 5)
 )
 
 # Define primary's key events and holdings
-primary_retirement = Date.new(2032, 3, 1)
+primary_retirement = Date.new(2031, 3, 1)
 
-account = FortuneTeller::Account.new(
-  holder: :primary,
-  type: :_401k,
-  balance: 500_000_00
-)
-primary_401k = sim.add_account(account)
+primary_401k = sim.add_account(:primary) do |plan|
+  plan.beginning.set(
+    type: :_401k,
+    balance: 500_000_00
+  )
+end
 
-job = FortuneTeller::Job.new(
-  holder: :primary,
-  salary: 100_000_00,
-  end_date: primary_retirement
-)
-savings_plan = FortuneTeller::SavingsPlans::Percent.new(
-  percent: 7,
-  match: 3,
-  account_id: primary_401k
-)
-job.add_savings_plan(savings_plan)
-sim.add_job(job)
+sim.add_job(:primary) do |plan|
+  plan.beginning do |p|
+    p.set(
+      base: 100_000_00,
+    )
+    p.add_savings_plan(
+      percent: 7,
+      match: 3,
+      account: primary_401k
+    )
+  end
+  plan.on(primary_retirement).stop
+end
 
-primary_ss = FortuneTeller::SocialSecurity.new(
-  holder: :primary,
-  start_date: primary_retirement,
-  pia: 1000_00
-)
-sim.add_social_security(primary_ss)
+sim.add_social_security(:primary) do |plan|
+  plan.on(primary_retirement).start
+end
 
 # Define partner's key events and holdings
-partner_retirement = Date.new(2032, 6, 1)
+partner_retirement = Date.new(2033, 5, 1)
 
-account = FortuneTeller::Account.new(
-  holder: :partner,
-  type: :_401k,
-  balance: 200_000_00
-)
-partner_401k = sim.add_account(account)
+partner_401k = sim.add_account(:partner) do |plan|
+  plan.beginning.set(
+    type: :_401k,
+    balance: 200_000_00
+  )
+end
 
-job = FortuneTeller::Job.new(
-  holder: :partner,
-  salary: 75_000_00,
-  end_date: partner_retirement
-)
-savings_plan = FortuneTeller::SavingsPlans::Percent.new(
-  percent: 7,
-  match: 3,
-  account_id: partner_401k
-)
-job.add_savings_plan(savings_plan)
-sim.add_job(job)
+sim.add_job(:partner) do |plan|
+  plan.beginning do |p|
+    p.set(
+      base: 75_000_00,
+    )
+    p.add_savings_plan(
+      percent: 7,
+      match: 3,
+      account: partner_401k
+    )
+  end
+  plan.on(partner_retirement).stop
+end
 
-partner_ss = FortuneTeller::SocialSecurity.new(
-  holder: :partner,
-  start_date: partner_retirement,
-  pia: 1000_00
-)
-sim.add_social_security(partner_ss)
+sim.add_social_security(:partner) do |plan|
+  plan.on(partner_retirement).start(
+    pia: 1000_00
+  )
+end
 
 # Start by spending the leftovers (after tax and saving) and change to
 # spending an exact amount in retirement
 
-spending = FortuneTeller::SpendingStrategy.new(strategy: :remainder)
-future_take_home_pay = (sim.calculate_take_home_pay(:start) * 0.8).floor
-spending.on(primary_retirement).update(
-  strategy: :exact,
-  amount: sim.inflating_int(future_take_home_pay)
-)
-sim.spending_strategy = spending
+sim.add_spending_strategy do |plan|
+  plan.beginning.set(
+    strategy: :remainder
+  )
+  future_take_home_pay = (sim.calculate_take_home_pay(Date.today) * 0.8).floor
+  plan.on(primary_retirement).set(
+    strategy: :exact,
+    amount: sim.inflating_int(future_take_home_pay)
+  )
+end
+
+sim.add_tax_strategy do |plan|
+  plan.beginning.set(
+    primary: :married_filing_jointly,
+    partner: :married_filing_jointly
+  )
+end
 
 # Run!
 sim.simulate

@@ -1,25 +1,40 @@
 module FortuneTeller
   # Simulates personal finances.
   class Simulator
-    attr_accessor :primary, :partner, :spending_strategy
+    OBJECT_TYPES = %i[account job social_security spending_strategy tax_strategy]
+    USER_TYPES = %i[primary partner]
 
-    def initialize
-      @objects = {}
+    USER_TYPES.each do |user_type|
+      attr_reader user_type
+      define_method :"add_#{user_type}" do |**kwargs|
+        instance_variable_set(
+          :"@#{user_type}", 
+          FortuneTeller::Person.new(**kwargs)
+        )
+      end
+    end
+
+    OBJECT_TYPES.each do |object_type|
+      attr_reader object_type.to_s.pluralize.to_sym
+      define_method :"add_#{object_type}" do |holder=nil, &block|
+        generator = "fortune_teller/#{object_type}/generator".classify.constantize
+        key = @available_keys.shift
+        obj = generator.new(key, @beginning, holder, &block)
+        collection = send(object_type.to_s.pluralize.to_sym)[key] = obj
+        obj
+      end
+    end
+
+    def initialize(beginning)
+      @beginning = beginning
       @available_keys = ('AA'..'ZZ').to_a
-    end
-
-    %i[account job social_security].each do |object_type|
-      define_method :"add_#{object_type}" do |object|
-        add_object type: object_type, object: object
-      end
-      define_method :"#{object_type.to_s.pluralize}" do
-        retrieve_objects type: object_type
+      OBJECT_TYPES.each do |object_type|
+        send("#{object_type.to_s.pluralize}=".to_sym, {})
       end
     end
 
-    def calculate_take_home_pay(_date)
-      # TODO: make this date dependant
-      @objects[:job].each_value.map(&:calculate_take_home_pay).sum
+    def calculate_take_home_pay(date)
+      jobs.values.each.map{|x| x.plan.to_reader.on(date).calculate_take_home_pay}.sum
     end
 
     def simulate
@@ -33,19 +48,24 @@ module FortuneTeller
     end
 
     def inflating_int(int, start_date = nil)
-      FortuneTeller::InflatingInt.new(
+      FortuneTeller::Utils::InflatingInt.new(
         int: int,
-        start_date: (start_date.nil? ? Date.today : start_date)
+        start_date: (start_date.nil? ? @beginning : start_date)
       )
     end
 
     private
 
+    OBJECT_TYPES.each do |object_type|
+      attr_writer object_type.to_s.pluralize.to_sym
+    end
+
     def simulate_next_state(last)
       end_date = first_day_of_year((last.date.year + 1))
       transforms = static_transforms(from: last.date, to: end_date)
       state = evolve_state(last, transforms, end_date)
-      extra = spending_strategy.resolution_transforms(state: state)
+      # TODO: Force one spending strategy, find a more elegant way to retrieve it
+      extra = spending_strategies.values.first.resolution_transforms(state: state)
       unless extra.empty?
         transforms.concat(extra).sort!
         state = evolve_state(last, transforms, end_date)
@@ -67,10 +87,11 @@ module FortuneTeller
     def static_transforms(from:, to:)
       transforms = []
       %i[job social_security].each do |object_type|
-        @objects[object_type].each_value { |o| transforms.push(o) }
+        collection = send(object_type.to_s.pluralize.to_sym)
+        collection.each_value { |o| transforms.push(o) }
       end
       transforms = transforms.map do |x|
-        x.bounded_gen_transforms(from: from, to: to, plan: self)
+        x.bounded_gen_transforms(from: from, to: to, simulator: self)
       end
       transforms.reduce([], :concat).sort
     end
@@ -89,26 +110,13 @@ module FortuneTeller
     end
 
     def initial_state
-      s = FortuneTeller::State.new(start_date: Date.today)
-      @objects[:account].each { |k, a| s.add_account(key: k, account: a) }
+      s = FortuneTeller::State.new(start_date: @beginning)
+      accounts.each { |k, a| s.add_account(key: k, account: a) }
       s
     end
 
     def validate_plan!
       throw 'Please assign primary' if no_primary?
-    end
-
-    def add_object(type:, object:)
-      key = @available_keys.shift
-      @objects[type] ||= {}
-      @objects[type][key] = object
-      key
-    end
-
-    def retrieve_objects(type:)
-      @objects[type]
-    rescue NoMethodError
-      {}
     end
   end
 end

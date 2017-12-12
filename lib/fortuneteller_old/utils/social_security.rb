@@ -60,7 +60,6 @@ module FortuneTeller
 
       def calculate_benefit
         frm = full_retirement_month
-
         return @pia if @start_month == frm
 
         if(@start_month < frm)
@@ -143,8 +142,8 @@ module FortuneTeller
         elsif year >= 1960
           @frm = frm.years_since(67)
         else
-          t = TRANSITION_YEARS[year]
-          @frm = frm.years_since(t[0]).months_since(t[1])             
+          t = TRANSITION_YEARS[year][0]
+          @frm = frm.years_since(t[0]).years_since(t[1])             
         end     
       end
 
@@ -161,7 +160,6 @@ module FortuneTeller
       end
 
       # Based on https://www.ssa.gov/oact/quickcalc/early_late.html 11/16/2017
-      # https://www.ssa.gov/oact/quickcalc/earlyretire.html
       def early_benefit(months:)
         if months <= 36
           multiplier = 100.0 - ((5.0 * months) / 9.0)
@@ -172,6 +170,7 @@ module FortuneTeller
       end
 
       # Based on https://www.ssa.gov/oact/quickcalc/early_late.html 11/16/2017
+      # https://www.ssa.gov/oact/quickcalc/earlyretire.html
       def late_benefit(months:)
         year = @adjusted_dob.year
         if year <= 1924
@@ -296,3 +295,4 @@ module FortuneTeller
     end
   end
 end
+

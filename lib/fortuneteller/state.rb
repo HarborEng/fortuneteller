@@ -4,7 +4,7 @@ module FortuneTeller
     attr_reader :date, :accounts, :cashflow, :from, :to
 
     def self.cashflow_base
-      FortuneTeller::Cashflow.new(
+      {
         pretax_gross: 0,
         pretax_salary: 0,
         pretax_savings_withdrawal: 0,
@@ -13,7 +13,7 @@ module FortuneTeller
         pretax_adjusted: 0,
         tax_withholding: 0,
         take_home_pay: 0
-      )
+      }
     end
 
     def initialize(start_date:, previous: nil)
@@ -41,10 +41,14 @@ module FortuneTeller
 
     def apply_pretax_savings_withdrawal(date:, holder:, amount:, source:)
       @accounts[source].debit(amount: amount, on: date)
-      c = FortuneTeller::Cashflow.new(pretax_gross: amount, pretax_savings_withdrawal: amount)
-      c.line_items[:pretax_adjusted] = amount
-      c.line_items[:tax_withholding] = 0
-      c.line_items[:take_home_pay] = amount
+      c = {
+        pretax_gross: amount,
+        pretax_savings_withdrawal: amount,
+        pretax_adjusted: amount,
+        tax_withholding: 0,
+        take_home_pay: amount
+      }
+
       apply_cashflow(date: date, holder: holder, cashflow: c)
     end
 
@@ -66,7 +70,7 @@ module FortuneTeller
     end
 
     def merged_cashflow(holder:)
-      @cashflow[holder].reduce(FortuneTeller::Cashflow.new, :merge!)
+      @cashflow[holder].reduce({}, Cashflow.method(:merge!))
     end
 
     def as_json(_options = nil)
@@ -83,30 +87,30 @@ module FortuneTeller
     private
 
     def generate_w2_cashflow(date, income)
-      c = FortuneTeller::Cashflow.new(
+      c = {
         pretax_gross: (income[:wages] + income[:matched]),
         pretax_salary: income[:wages],
         pretax_savings: income[:saved],
         pretax_savings_matched: income[:matched],
         pretax_adjusted: (income[:wages] - income[:saved])
-      )
-      c.line_items[:tax_withholding] = calculate_w2_withholding(
+      }
+      c[:tax_withholding] = calculate_w2_withholding(
         date: date,
-        adjusted_income: c.line_items[:pretax_adjusted],
+        adjusted_income: c[:pretax_adjusted],
         pay_period: income[:pay_period]
       )
-      c.line_items[:take_home_pay] = c.line_items[:pretax_adjusted] - c.line_items[:tax_withholding]
+      c[:take_home_pay] = c[:pretax_adjusted] - c[:tax_withholding]
       c
     end
 
     def generate_ss_cashflow(date, income)
-      FortuneTeller::Cashflow.new(
+      {
         pretax_gross: income[:ss],
         pretax_ss: income[:ss],
         pretax_adjusted: income[:ss],
         tax_withholding: 0,
         take_home_pay: income[:ss]
-      )
+      }
     end
 
     def calculate_w2_withholding(date:, adjusted_income:, pay_period:)
@@ -115,7 +119,7 @@ module FortuneTeller
     end
 
     def apply_cashflow(date:, holder:, cashflow:)
-      @cashflow[holder][(date.month - 1)].merge!(cashflow)
+      Cashflow.merge!(@cashflow[holder][(date.month - 1)], cashflow)
     end
   end
 end

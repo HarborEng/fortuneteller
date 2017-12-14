@@ -1,18 +1,10 @@
 module FortuneTeller
-  # Representation of an account being simulated with FortuneTeller
-  class Cashflow
-    attr_accessor :line_items
-    def initialize(**args)
-      @line_items = args
-    end
-
-    def merge!(other)
-      @line_items.merge!(other.line_items) { |_k, a, b| (a + b) }
-      self
-    end
-
-    def as_json(options = nil)
-      @line_items.as_json(options)
+  # Cashflows represent income streams and breakdowns. This module
+  # simply provides a utility to merge two flows and sum up their
+  # common streams.
+  module Cashflow
+    def self.merge!(left, right)
+      left.merge!(right) { |_k, a, b| (a + b) }
     end
   end
 end

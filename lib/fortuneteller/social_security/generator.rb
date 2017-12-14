@@ -41,12 +41,12 @@ module FortuneTeller
           }.map{ 
             |j| j.plan.to_reader.on(@beginning).base
           }.sum
-          puts "CURRENT SAL #{@holder} #{current_salary}"
+          puts "CURRENT SAL #{@holder} #{current_salary}" if ENV['VERBOSE']
           calc.estimate_pia(current_salary: current_salary, annual_raise: 1.03)
         end
 
         benefit = calc.calculate_benefit
-        puts "BENEFIT #{benefit}"
+        puts "BENEFIT #{benefit}" if ENV['VERBOSE']
         @benefit = simulator.inflating_int(benefit, start_month)
       end
     end

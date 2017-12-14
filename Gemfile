@@ -7,3 +7,8 @@ gemspec
 
 gem 'activesupport', '~> 5.0'
 gem 'rubocop', require: false
+
+group :profiling do
+  gem 'ruby-prof'
+  gem 'ruby-prof-flamegraph'
+end

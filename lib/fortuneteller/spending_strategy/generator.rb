@@ -17,7 +17,7 @@ module FortuneTeller
       private
 
       def gen_transform(date, amount)
-        self.class.parent::Transform.new(
+        SpendingStrategy::Transform.new(
           holder: :joint,
           date: date,
           withdrawal: amount

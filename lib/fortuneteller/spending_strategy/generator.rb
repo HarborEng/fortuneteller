@@ -31,9 +31,8 @@ module FortuneTeller
       def determine_take_home_pay(state, index)
         c = state.cashflow
 
-        Cashflow
-          .merge!(c[:primary][index], c[:partner][index])
-          .fetch(:take_home_pay, 0)
+        c[:primary][index].fetch(:take_home_pay, 0) +
+          c[:partner][index].fetch(:take_home_pay, 0)
       end
     end
   end

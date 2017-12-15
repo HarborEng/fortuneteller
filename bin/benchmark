@@ -4,9 +4,11 @@ require 'bundler/setup'
 require 'fortuneteller'
 require 'benchmark'
 
-trials = (ARGV.first || 100).to_i
+trials = (ARGV[0] || 100).to_i
+
+sim = FortuneTeller::Benchmark.create_sim
 
 puts "simulating N=#{trials}:"
 puts Benchmark.measure {
-  trials.times { FortuneTeller::Benchmark.run }
+  trials.times { sim.simulate }
 }

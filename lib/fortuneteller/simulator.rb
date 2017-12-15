@@ -94,12 +94,14 @@ module FortuneTeller
     end
 
     def static_transforms(from:, to:)
-      static_components
-        .flat_map(&:values)
-        .flat_map do |gen|
-          gen.bounded_gen_transforms(from: from, to: to, simulator: self)
-        end
-        .sort
+      @cached_transforms ||= {}
+      @cached_transforms[[from, to]] ||= \
+        static_components
+          .flat_map(&:values)
+          .flat_map do |gen|
+            gen.bounded_gen_transforms(from: from, to: to, simulator: self)
+          end
+          .sort
     end
 
     def youngest_birthday

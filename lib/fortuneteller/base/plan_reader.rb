@@ -8,7 +8,7 @@ module FortuneTeller
       # TODO: hold an internal state instead of looping each time
       def on(date)
         @plan.day_plans.each_with_index do |d, i|
-          if date < d.date
+          if date.compare_without_coercion(d.date) < 0
             return (i == 0 ? nil : @plan.day_plans[i-1])
           end
         end

@@ -8,7 +8,7 @@ module FortuneTeller
       end
 
       def <=>(other)
-        date <=> other.date
+        date.compare_without_coercion(other.date)
       end
     end
   end

@@ -10,10 +10,13 @@ module FortuneTeller
 
       def apply_to(state)
         withdrawn = 0
-        state.accounts.reject { |_k, a| a.balance.zero? }.each do |k, a|
+        state.accounts.each do |k, a|
+          next if a.balance.zero?
+
           a.pass_time(to: @date)
           withdrawal = [a.balance, (@withdrawal - withdrawn)].min
           next if withdrawal.zero?
+
           make_withdrawal(state, a.account_ref.holder, k, withdrawal)
           withdrawn += withdrawal
           break if withdrawn == @withdrawal

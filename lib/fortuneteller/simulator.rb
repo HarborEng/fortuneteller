@@ -44,7 +44,9 @@ module FortuneTeller
       while states.last.date != end_date
         states << simulate_next_state(states.last)
       end
-      puts states.as_json
+      puts states.as_json if ENV['VERBOSE']
+
+      states
     end
 
     def inflating_int(int, start_date = nil)
@@ -84,16 +86,22 @@ module FortuneTeller
       state
     end
 
+    def static_components
+      @static_components ||=
+        %i[job social_security].map do |object_type|
+          send(object_type.to_s.pluralize.to_sym)
+        end
+    end
+
     def static_transforms(from:, to:)
-      transforms = []
-      %i[job social_security].each do |object_type|
-        collection = send(object_type.to_s.pluralize.to_sym)
-        collection.each_value { |o| transforms.push(o) }
-      end
-      transforms = transforms.map do |x|
-        x.bounded_gen_transforms(from: from, to: to, simulator: self)
-      end
-      transforms.reduce([], :concat).sort
+      @cached_transforms ||= {}
+      @cached_transforms[[from, to]] ||= \
+        static_components
+          .flat_map(&:values)
+          .flat_map do |gen|
+            gen.bounded_gen_transforms(from: from, to: to, simulator: self)
+          end
+          .sort
     end
 
     def youngest_birthday

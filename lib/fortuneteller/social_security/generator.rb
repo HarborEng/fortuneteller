@@ -7,10 +7,10 @@ module FortuneTeller
         benefit = get_benefit_amount(simulator: simulator).on(from)
         transforms = []
         transforms.push gen_transform(from, benefit) if from.day == 1
-        current = from.next_month.at_beginning_of_month
+        current = next_month(from)
         while current < to
           transforms.push gen_transform(current, benefit)
-          current = current.next_month.at_beginning_of_month
+          current = next_month(current)
         end
         transforms
       end
@@ -25,7 +25,7 @@ module FortuneTeller
         if @start_date.day == 1
           start_month = @start_date
         else
-          start_month = @start_date.next_month.at_beginning_of_month
+          start_month = next_month(@start_date)
         end
 
         calc = FortuneTeller::Utils::SocialSecurity.new(
@@ -41,12 +41,12 @@ module FortuneTeller
           }.map{ 
             |j| j.plan.to_reader.on(@beginning).base
           }.sum
-          puts "CURRENT SAL #{@holder} #{current_salary}"
+          puts "CURRENT SAL #{@holder} #{current_salary}" if ENV['VERBOSE']
           calc.estimate_pia(current_salary: current_salary, annual_raise: 1.03)
         end
 
         benefit = calc.calculate_benefit
-        puts "BENEFIT #{benefit}"
+        puts "BENEFIT #{benefit}" if ENV['VERBOSE']
         @benefit = simulator.inflating_int(benefit, start_month)
       end
     end

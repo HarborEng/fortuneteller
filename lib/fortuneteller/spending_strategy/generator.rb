@@ -17,7 +17,7 @@ module FortuneTeller
       private
 
       def gen_transform(date, amount)
-        self.class.parent::Transform.new(
+        SpendingStrategy::Transform.new(
           holder: :joint,
           date: date,
           withdrawal: amount
@@ -30,9 +30,9 @@ module FortuneTeller
 
       def determine_take_home_pay(state, index)
         c = state.cashflow
-        merged = state.class.cashflow_base
-        merged.merge!(c[:primary][index]).merge!(c[:partner][index])
-        merged.line_items[:take_home_pay]
+
+        c[:primary][index].fetch(:take_home_pay, 0) +
+          c[:partner][index].fetch(:take_home_pay, 0)
       end
     end
   end

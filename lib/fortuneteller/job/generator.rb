@@ -9,11 +9,13 @@ module FortuneTeller
         fields = gen_transform_fields( plan.to_reader.on(from) )
         transforms = []
         transforms.push gen_transform(from, fields) if from.day == 1
-        current = from.next_month.at_beginning_of_month
+        current = next_month(from)
+
         while current < to
           transforms.push gen_transform(current, fields)
-          current = current.next_month.at_beginning_of_month
+          current = next_month(current)
         end
+
         transforms
       end
       

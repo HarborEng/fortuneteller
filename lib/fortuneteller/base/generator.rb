@@ -21,6 +21,12 @@ module FortuneTeller
 
       private
 
+      # This avoids the time calculations involved in Date#beginning_of_month
+      # for a slight speedup.
+      def next_month(from)
+        from.next_month.change(day: 1)
+      end
+
       def out_of_range?(from:, to:)
         return true if !@start_date.nil? && (to < @start_date)
         return true if !@end_date.nil? && (from >= @end_date)

@@ -45,6 +45,8 @@ module FortuneTeller
         states << simulate_next_state(states.last)
       end
       puts states.as_json if ENV['VERBOSE']
+
+      states
     end
 
     def inflating_int(int, start_date = nil)

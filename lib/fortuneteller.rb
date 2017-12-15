@@ -4,6 +4,7 @@ require 'active_support/core_ext/date/calculations.rb'
 require 'active_support/core_ext/object/json.rb'
 
 require 'fortuneteller/version'
+require 'fortuneteller/benchmark'
 
 require 'fortuneteller/simulator'
 require 'fortuneteller/person'

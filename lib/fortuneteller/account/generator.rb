@@ -27,8 +27,8 @@ module FortuneTeller
           @balance += amount
         end
 
-        def debit(amount:, on:)
-          pass_time(to: on)
+        def debit(amount:, on:, pass_time: true)
+          pass_time(to: on) if pass_time
           @balance -= amount
         end
 

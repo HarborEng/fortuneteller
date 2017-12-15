@@ -40,7 +40,7 @@ module FortuneTeller
     end
 
     def apply_pretax_savings_withdrawal(date:, holder:, amount:, source:)
-      @accounts[source].debit(amount: amount, on: date)
+      @accounts[source].debit(amount: amount, on: date, pass_time: false)
       c = {
         pretax_gross: amount,
         pretax_savings_withdrawal: amount,

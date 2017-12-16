@@ -23,7 +23,10 @@ module FortuneTeller
       primary_401k = sim.add_account(:primary) do |plan|
         plan.beginning.set(
           type: :_401k,
-          balance: 500_000_00
+          balances: {
+            stocks: 300_000_00,
+            bonds:  200_000_00
+          }
         )
       end
 
@@ -51,7 +54,9 @@ module FortuneTeller
       partner_401k = sim.add_account(:partner) do |plan|
         plan.beginning.set(
           type: :_401k,
-          balance: 200_000_00
+          balances: {
+            stocks: 200_000_00
+          }
         )
       end
 

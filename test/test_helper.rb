@@ -3,3 +3,4 @@ require 'fortuneteller'
 
 require 'minitest/autorun'
 require 'timecop'
+require 'pry'

@@ -11,11 +11,12 @@ module FortuneTeller
         @base = base
       end
 
-      def add_savings_plan(percent:, match:, account:)
+      def add_savings_plan(percent:, match:, account:, holding:)
         @savings_plans << {
           percent: percent,
           match: match,
-          account: account
+          account: account,
+          holding: holding
         }
       end
 

@@ -55,8 +55,10 @@ module FortuneTeller
     def apply_w2_income(date:, holder:, income:, account_credits:)
       c = generate_w2_cashflow(date, income)
       apply_cashflow(date: date, holder: holder, cashflow: c)
-      account_credits.each do |k, amount|
-        @accounts[k].credit(amount: amount, on: date)
+      account_credits.each do |k, allocations|
+        allocations.each do |holding, amount|
+          @accounts[k].credit(amount: amount, on: date, holding: holding)
+        end
       end
     end
 

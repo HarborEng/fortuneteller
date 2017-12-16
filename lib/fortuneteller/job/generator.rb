@@ -32,7 +32,7 @@ module FortuneTeller
           income[:saved] += s
           m = (wages * p[:match] / 100.0).floor
           income[:matched] += m
-          account_credits[p[:account].key] = s + m
+          account_credits[p[:account].key] = { p[:holding] => s + m }
         end
         { account_credits: account_credits, income: income }
       end

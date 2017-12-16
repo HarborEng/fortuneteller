@@ -51,6 +51,32 @@ class FortuneTellerTest < Minitest::Test
     )
   end
 
+  def test_account_state
+    sim = FortuneTeller.new(Date.today)
+
+    account_generator = sim.add_account(:primary) do |plan|
+      plan.beginning.set(
+        type: :_401k,
+        balances: {
+          stocks: 300_000_00,
+          bonds:  200_000_00
+        }
+      )
+    end
+
+    state = account_generator.initial_state(start_date: Date.today)
+
+    assert_equal(state.balances,
+      {
+        stocks: 300_000_00,
+        bonds:  200_000_00
+      }
+    )
+
+    state.credit(amount: 1_000_00, holding: :stocks, on: Date.today)
+    assert_equal state.balances[:stocks], 301_000_00
+  end
+
   def real_estate
     sim.add_real_estate do |plan|
       plan.beginning do |p|

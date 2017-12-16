@@ -38,7 +38,8 @@ module FortuneTeller
           p.add_savings_plan(
             percent: 7,
             match: 3,
-            account: primary_401k
+            account: primary_401k,
+            holding: :stocks
           )
         end
         plan.on(primary_retirement).stop
@@ -68,7 +69,8 @@ module FortuneTeller
           p.add_savings_plan(
             percent: 7,
             match: 3,
-            account: partner_401k
+            account: partner_401k,
+            holding: :stocks
           )
         end
         plan.on(partner_retirement).stop

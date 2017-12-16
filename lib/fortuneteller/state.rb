@@ -16,9 +16,10 @@ module FortuneTeller
       }
     end
 
-    def initialize(start_date:, previous: nil)
+    def initialize(start_date:, growth_rates:, previous: nil)
       @from = start_date.dup
       @date = start_date
+      @growth_rates = growth_rates
       @accounts = {}
       unless previous.nil?
         previous.accounts.each { |k, a| @accounts[k] = a.dup }
@@ -29,13 +30,16 @@ module FortuneTeller
       }
     end
 
-    def add_account(key:, account:)
-      @accounts[key] = account.initial_state(start_date: @date)
+    def add_account(key:, account:, growth_rates:)
+      @accounts[key] = account.initial_state(start_date: @date, growth_rates: @growth_rates)
+    end
+
+    def growth_rate(key)
+      @growth_rates.annually(key, date.year)
     end
 
     def pass_time(to:)
-      @date = to
-      @to = to
+      @date = @to = to
       @accounts.each_value { |a| a.pass_time(to: to) }
     end
 
@@ -68,7 +72,11 @@ module FortuneTeller
     end
 
     def init_next
-      self.class.new(start_date: @date, previous: self)
+      self.class.new(
+        start_date: @date,
+        growth_rates: @growth_rates,
+        previous: self
+      )
     end
 
     def merged_cashflow(holder:)

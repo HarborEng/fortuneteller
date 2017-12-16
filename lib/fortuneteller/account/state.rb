@@ -2,11 +2,12 @@ module FortuneTeller
   module Account
     class State
       attr_accessor :balances, :date
-      attr_reader :account_ref
-      def initialize(start_date:, balances:, account_ref:)
+      attr_reader :account_ref, :growth_rates
+      def initialize(start_date:, balances:, account_ref:, growth_rates:)
         @account_ref = account_ref
         @date = start_date
         @balances = balances
+        @growth_rates = growth_rates
         @daily_growth_rate = 1.05**(1.0 / 365) # 5% annum
       end
 
@@ -47,7 +48,9 @@ module FortuneTeller
         days = (to - @date).to_i
         @balances.each do |holding, balance|
           next if balance < 0
-          @balances[holding] = (balance * (@daily_growth_rate**days)).round
+
+          rate = growth_rates.daily(holding, @date.year)
+          @balances[holding] = (balance * (rate**days)).round
         end
         @date = to
       end

@@ -25,6 +25,12 @@ module FortuneTeller
       end
     end
 
+    attr_reader :growth_rates
+
+    def set_growth_rates(rates)
+      @growth_rates = GrowthRateSet.new(rates, start_year: @beginning.year)
+    end
+
     def initialize(beginning)
       @beginning = beginning
       @available_keys = ('AA'..'ZZ').to_a
@@ -118,8 +124,8 @@ module FortuneTeller
     end
 
     def initial_state
-      s = FortuneTeller::State.new(start_date: @beginning)
-      accounts.each { |k, a| s.add_account(key: k, account: a) }
+      s = FortuneTeller::State.new(start_date: @beginning, growth_rates: @growth_rates)
+      accounts.each { |k, a| s.add_account(key: k, account: a, growth_rates: @growth_rates) }
       s
     end
 

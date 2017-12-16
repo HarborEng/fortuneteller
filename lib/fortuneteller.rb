@@ -10,6 +10,7 @@ require 'fortuneteller/simulator'
 require 'fortuneteller/person'
 require 'fortuneteller/state'
 require 'fortuneteller/cashflow'
+require 'fortuneteller/growth_rate_set'
 
 require 'fortuneteller/utils/inflating_int'
 require 'fortuneteller/utils/social_security'

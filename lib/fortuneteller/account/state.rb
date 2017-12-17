@@ -17,7 +17,7 @@ module FortuneTeller
       end
 
       def balance
-        @balances.values.map(&:to_i).sum # TODO: remove me?
+        @balances.values.map(&:to_i).sum
       end
 
       def credit(amount:, holding:, on:)

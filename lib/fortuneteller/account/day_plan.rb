@@ -6,11 +6,6 @@ module FortuneTeller
         @type = type
         @balances = balances
       end
-
-      # TODO: remove me!
-      def balance
-        balances.values.sum
-      end
     end
   end
 end

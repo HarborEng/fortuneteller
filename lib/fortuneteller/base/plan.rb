@@ -2,10 +2,10 @@ module FortuneTeller
   module Base
     class Plan
       attr_reader :day_plans, :start_date, :end_date
-      def initialize(beginning, &block)
+      def initialize(beginning)
         @beginning = beginning
         @day_plans = []
-        yield(self)
+        yield(self) if block_given?
       end
 
       def finalize

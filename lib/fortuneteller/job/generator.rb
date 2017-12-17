@@ -6,7 +6,7 @@ module FortuneTeller
 
       def gen_transforms(from:, to:, simulator:)
         # TODO: Update so it responds to changes within the year
-        fields = gen_transform_fields( plan.to_reader.on(from) )
+        fields = gen_transform_fields(plan.to_reader.on(from), from, simulator.growth_rates)
         transforms = []
         transforms.push gen_transform(from, fields) if from.day == 1
         current = next_month(from)
@@ -23,8 +23,8 @@ module FortuneTeller
         self.class.parent::Transform.new(date: date, holder: @holder, **fields)
       end
 
-      def gen_transform_fields(day_plan)
-        wages = (day_plan.base / 12.0).floor
+      def gen_transform_fields(day_plan, from, growth_rates)
+        wages = day_plan.adjusted_monthly_base(from.year, growth_rates)
         account_credits = {}
         income = { wages: wages, saved: 0, matched: 0, pay_period: :monthly }
         day_plan.savings_plans.each do |p|

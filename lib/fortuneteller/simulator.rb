@@ -4,6 +4,8 @@ module FortuneTeller
     OBJECT_TYPES = %i[account job social_security spending_strategy tax_strategy]
     USER_TYPES = %i[primary partner]
 
+    attr_reader :growth_rates, :beginning
+
     USER_TYPES.each do |user_type|
       attr_reader user_type
       define_method :"add_#{user_type}" do |**kwargs|
@@ -25,12 +27,6 @@ module FortuneTeller
       end
     end
 
-    attr_reader :growth_rates
-
-    def set_growth_rates(rates)
-      @growth_rates = GrowthRateSet.new(rates, start_year: @beginning.year)
-    end
-
     def initialize(beginning)
       @beginning = beginning
       @available_keys = ('AA'..'ZZ').to_a
@@ -39,8 +35,14 @@ module FortuneTeller
       end
     end
 
+    def set_growth_rates(rates)
+      @growth_rates = GrowthRateSet.new(rates, start_year: @beginning.year)
+    end
+
     def calculate_take_home_pay(date)
-      jobs.values.each.map{|x| x.plan.to_reader.on(date).calculate_take_home_pay}.sum
+      jobs.values.map do |job|
+        job.plan.to_reader.on(date).calculate_take_home_pay(date, growth_rates)
+      end.sum
     end
 
     def simulate

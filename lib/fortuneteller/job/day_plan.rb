@@ -4,6 +4,7 @@ module FortuneTeller
       attr_accessor :base, :savings_plans
       def initialize(*args)
         @savings_plans = []
+        @adjusted_base = {}
         super
       end
 
@@ -20,8 +21,23 @@ module FortuneTeller
         }
       end
 
-      def calculate_take_home_pay
-        take_home = (base/12.0).floor
+      def adjusted_base(year, growth_rates)
+        @adjusted_base[year] ||= begin
+          if year <= date.year
+            base
+          else
+            adjusted_base(year - 1, growth_rates) *
+              growth_rates.annually(:wage_growth, year - 1)
+          end
+        end
+      end
+
+      def adjusted_monthly_base(*args)
+        (adjusted_base(*args) / 12.0).floor
+      end
+
+      def calculate_take_home_pay(on_date, growth_rates)
+        take_home = adjusted_monthly_base(on_date.year, growth_rates)
         savings_plans.each do |s|
           take_home -= ((s[:percent]/100.0) * take_home).floor
         end

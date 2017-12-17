@@ -1,5 +1,4 @@
 require 'test_helper'
-require 'date'
 
 class AcceptanceTest < Minitest::Test
   def test_expected_results

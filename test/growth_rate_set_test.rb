@@ -1,5 +1,4 @@
 require 'test_helper'
-require 'date'
 
 class GrowthRateSetTest < Minitest::Test
   def test_repeating_behavior

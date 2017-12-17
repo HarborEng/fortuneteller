@@ -24,7 +24,7 @@ module FortuneTeller
       end
 
       def gen_transform_fields(day_plan, from, growth_rates)
-        wages = day_plan.adjusted_monthly_base(from.year, growth_rates)
+        wages = day_plan.monthly_base(from, growth_rates: growth_rates)
         account_credits = {}
         income = { wages: wages, saved: 0, matched: 0, pay_period: :monthly }
         day_plan.savings_plans.each do |p|

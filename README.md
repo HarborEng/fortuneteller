@@ -34,6 +34,16 @@ sim.add_partner(
   birthday: Date.new(1966, 5, 5)
 )
 
+sim.set_growth_rates(
+  # these should match the holdings your retirement accounts have:
+  stocks:       [1.05],
+  bonds:        [1.05],
+
+  # these are reserved parameters for the simulation:
+  wage_growth:  [1.00],
+  inflation:    [1.02]
+)
+
 # Define primary's key events and holdings
 primary_retirement = Date.new(2031, 3, 1)
 
@@ -119,16 +129,6 @@ sim.add_tax_strategy do |plan|
     partner: :married_filing_jointly
   )
 end
-
-sim.set_growth_rates(
-  # these should match the holdings your retirement accounts have:
-  stocks:       [1.05],
-  bonds:        [1.05],
-
-  # these are reserved parameters for the simulation:
-  wage_growth:  [1.00],
-  inflation:    [1.02]
-)
 
 # Run!
 sim.simulate

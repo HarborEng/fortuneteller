@@ -4,7 +4,7 @@ module FortuneTeller
       private
 
       def gen_transforms(from:, to:, simulator:)
-        benefit = get_benefit_amount(simulator: simulator).on(from)
+        benefit = get_benefit_amount(simulator: simulator).on(from, growth_rates: simulator.growth_rates)
         transforms = []
         transforms.push gen_transform(from, benefit) if from.day == 1
         current = next_month(from)
@@ -39,7 +39,7 @@ module FortuneTeller
           current_salary = simulator.jobs.values.keep_if { 
             |j| j.holder==@holder 
           }.map{ 
-            |j| j.plan.to_reader.on(@beginning).base
+            |j| j.plan.to_reader.on(@beginning).base.on(@start_date, growth_rates: simulator.growth_rates)
           }.sum
           puts "CURRENT SAL #{@holder} #{current_salary}" if ENV['VERBOSE']
           calc.estimate_pia(current_salary: current_salary, annual_raise: 1.03)

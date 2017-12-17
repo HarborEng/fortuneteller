@@ -41,7 +41,7 @@ module FortuneTeller
 
     def calculate_take_home_pay(date)
       jobs.values.map do |job|
-        job.plan.to_reader.on(date).calculate_take_home_pay(date, growth_rates)
+        job.plan.to_reader.on(date).calculate_take_home_pay(date, growth_rates: growth_rates)
       end.sum
     end
 

@@ -4,12 +4,15 @@ module FortuneTeller
       attr_accessor :base, :savings_plans
       def initialize(*args)
         @savings_plans = []
-        @adjusted_base = {}
         super
       end
 
       def set(base:)
-        @base = base
+        @base = FortuneTeller::Utils::InflatingInt.new(
+          int: base,
+          start_date: date,
+          growth_key: :wage_growth,
+        )
       end
 
       def add_savings_plan(percent:, match:, account:, holding:)
@@ -21,23 +24,12 @@ module FortuneTeller
         }
       end
 
-      def adjusted_base(year, growth_rates)
-        @adjusted_base[year] ||= begin
-          if year <= date.year
-            base
-          else
-            adjusted_base(year - 1, growth_rates) *
-              growth_rates.annually(:wage_growth, year - 1)
-          end
-        end
+      def monthly_base(on_date, growth_rates:)
+        (base.on(on_date, growth_rates: growth_rates) / 12.0).floor
       end
 
-      def adjusted_monthly_base(*args)
-        (adjusted_base(*args) / 12.0).floor
-      end
-
-      def calculate_take_home_pay(on_date, growth_rates)
-        take_home = adjusted_monthly_base(on_date.year, growth_rates)
+      def calculate_take_home_pay(*args)
+        take_home = monthly_base(*args)
         savings_plans.each do |s|
           take_home -= ((s[:percent]/100.0) * take_home).floor
         end

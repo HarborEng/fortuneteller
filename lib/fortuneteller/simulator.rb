@@ -102,8 +102,10 @@ module FortuneTeller
     end
 
     def static_transforms(from:, to:)
+      cache_key = [from, to, growth_rates.hash_key(:inflation), growth_rates.hash_key(:wage_growth)]
+
       @cached_transforms ||= {}
-      @cached_transforms[[from, to]] ||= \
+      @cached_transforms[cache_key] ||= \
         static_components
           .flat_map(&:values)
           .flat_map do |gen|

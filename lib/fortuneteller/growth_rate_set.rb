@@ -18,5 +18,9 @@ module FortuneTeller
     def daily(key, year)
       @daily_cache[[key, year]] ||= annually(key, year) ** (1/365.00)
     end
+
+    def hash_key(key)
+      @growth_rates[key].hash
+    end
   end
 end

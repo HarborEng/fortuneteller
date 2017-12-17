@@ -20,34 +20,34 @@ module FortuneTeller
       end
 
       def get_benefit_amount(simulator:)
-        return @benefit unless @benefit.nil?
+        @benefit ||= begin
+          if @start_date.day == 1
+            start_month = @start_date
+          else
+            start_month = next_month(@start_date)
+          end
 
-        if @start_date.day == 1
-          start_month = @start_date
-        else
-          start_month = next_month(@start_date)
+          calc = FortuneTeller::Utils::SocialSecurity.new(
+            dob: simulator.send(@holder).birthday,
+            start_month: start_month
+          )
+
+          if not plan.pia.nil?
+            calc.fra_pia = plan.pia
+          else
+            current_salary = simulator.jobs.values.keep_if { 
+              |j| j.holder==@holder 
+            }.map{ 
+              |j| j.plan.to_reader.on(@beginning).base.int
+            }.sum
+            puts "CURRENT SAL #{@holder} #{current_salary}" if ENV['VERBOSE']
+            calc.estimate_pia(current_salary: current_salary, annual_raise: 1.03)
+          end
+
+          benefit = calc.calculate_benefit
+          puts "BENEFIT #{benefit}" if ENV['VERBOSE']
+          simulator.inflating_int(benefit, start_month)
         end
-
-        calc = FortuneTeller::Utils::SocialSecurity.new(
-          dob: simulator.send(@holder).birthday,
-          start_month: start_month
-        )
-
-        if not plan.pia.nil?
-          calc.fra_pia = plan.pia
-        else
-          current_salary = simulator.jobs.values.keep_if { 
-            |j| j.holder==@holder 
-          }.map{ 
-            |j| j.plan.to_reader.on(@beginning).base.on(@start_date, growth_rates: simulator.growth_rates)
-          }.sum
-          puts "CURRENT SAL #{@holder} #{current_salary}" if ENV['VERBOSE']
-          calc.estimate_pia(current_salary: current_salary, annual_raise: 1.03)
-        end
-
-        benefit = calc.calculate_benefit
-        puts "BENEFIT #{benefit}" if ENV['VERBOSE']
-        @benefit = simulator.inflating_int(benefit, start_month)
       end
     end
   end

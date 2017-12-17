@@ -62,4 +62,39 @@ class AcceptanceTest < Minitest::Test
       assert_equal actual, expected
     end
   end
+
+  def test_state_independence
+    # create two sims, run one first through a set of crazy params, and
+    # then both through the same params. the results should match up.
+    sim1 = FortuneTeller::Benchmark.create_sim
+    sim2 = FortuneTeller::Benchmark.create_sim
+
+    sim1.set_growth_rates(
+      stocks:       [1.15],
+      bonds:        [1.45],
+      wage_growth:  [1.30],
+      inflation:    [1.12]
+    )
+    sim1.simulate
+
+    sim1.set_growth_rates(
+      stocks:       [1.05],
+      bonds:        [1.05],
+      wage_growth:  [1.00],
+      inflation:    [1.02]
+    )
+    sim2.set_growth_rates(
+      stocks:       [1.05],
+      bonds:        [1.05],
+      wage_growth:  [1.00],
+      inflation:    [1.02]
+    )
+
+    res1 = sim1.simulate.as_json
+    res2 = sim2.simulate.as_json
+
+    res1.zip(res2).each do |line1, line2|
+      assert_equal line1, line2
+    end
+  end
 end

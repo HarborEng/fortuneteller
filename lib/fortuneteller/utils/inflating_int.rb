@@ -2,8 +2,6 @@ module FortuneTeller
   module Utils
     # An integer that inflates with time
     class InflatingInt
-      attr_reader :int
-
       def initialize(int:, start_date:, growth_key: :inflation)
         @int = int
         @start_date = start_date
@@ -13,6 +11,10 @@ module FortuneTeller
 
       def on(date, growth_rates:)
         adjusted_for(date.year, growth_rates).floor
+      end
+
+      def initial_value
+        @int
       end
 
       private

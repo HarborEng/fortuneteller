@@ -1,9 +1,9 @@
 module FortuneTeller
   module Base
     class Plan
-      attr_reader :day_plans, :start_date, :end_date
-      def initialize(beginning)
-        @beginning = beginning
+      attr_reader :day_plans, :start_date, :end_date, :beginning_date
+      def initialize(beginning_date)
+        @beginning_date = beginning_date
         @day_plans = []
         yield(self) if block_given?
       end
@@ -15,7 +15,7 @@ module FortuneTeller
 
       def on(date, &block)
         if @day_plans.empty? or date > @day_plans.last.date
-          @day_plans << self.class.parent::DayPlan.new(date, &block)
+          @day_plans << self.class.parent::DayPlan.new(date, self, &block)
           @day_plans.last
         else
           raise "Plans must be made in order.  #{date} is not after #{@day_plans.last.date}"
@@ -23,7 +23,7 @@ module FortuneTeller
       end
 
       def beginning(&block)
-        on(@beginning, &block)
+        on(@beginning_date, &block)
       end
 
       def to_reader

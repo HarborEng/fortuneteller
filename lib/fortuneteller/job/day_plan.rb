@@ -8,11 +8,7 @@ module FortuneTeller
       end
 
       def set(base:)
-        @base = FortuneTeller::Utils::InflatingInt.new(
-          int: base,
-          start_date: date,
-          growth_key: :wage_growth,
-        )
+        @base = inflating_int(base, :wage_growth)
       end
 
       def add_savings_plan(percent:, match:, account:, holding:)

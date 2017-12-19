@@ -8,7 +8,6 @@ module FortuneTeller
         @date = start_date
         @balances = balances
         @growth_rates = growth_rates
-        @daily_growth_rate = 1.05**(1.0 / 365) # 5% annum
       end
 
       def initialize_copy(orig)

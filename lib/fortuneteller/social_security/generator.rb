@@ -38,7 +38,7 @@ module FortuneTeller
             current_salary = simulator.jobs.values.keep_if { 
               |j| j.holder==@holder 
             }.map{ 
-              |j| j.plan.to_reader.on(@beginning).base.int
+              |j| j.plan.to_reader.on(@beginning).base.initial_value
             }.sum
             puts "CURRENT SAL #{@holder} #{current_salary}" if ENV['VERBOSE']
             calc.estimate_pia(current_salary: current_salary, annual_raise: 1.03)
@@ -46,7 +46,12 @@ module FortuneTeller
 
           benefit = calc.calculate_benefit
           puts "BENEFIT #{benefit}" if ENV['VERBOSE']
-          simulator.inflating_int(benefit, start_month)
+
+          Utils::InflatingInt.new(
+            int: benefit,
+            start_date: start_month,
+            growth_key: :inflation
+          )
         end
       end
     end

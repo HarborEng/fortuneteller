@@ -57,13 +57,6 @@ module FortuneTeller
       states
     end
 
-    def inflating_int(int, start_date = nil)
-      FortuneTeller::Utils::InflatingInt.new(
-        int: int,
-        start_date: (start_date.nil? ? @beginning : start_date)
-      )
-    end
-
     private
 
     OBJECT_TYPES.each do |object_type|

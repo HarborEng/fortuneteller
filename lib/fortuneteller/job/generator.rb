@@ -24,16 +24,25 @@ module FortuneTeller
       end
 
       def gen_transform_fields(day_plan, from, growth_rates)
-        wages = day_plan.monthly_base(from, growth_rates: growth_rates)
+        wages = day_plan.base / 12.0
         account_credits = {}
-        income = { wages: wages, saved: 0, matched: 0, pay_period: :monthly }
+        income = {
+          wages: wages,
+          saved: Utils::InflatingInt.zero,
+          matched: Utils::InflatingInt.zero,
+          pay_period: :monthly
+        }
+
         day_plan.savings_plans.each do |p|
-          s = (wages * p[:percent] / 100.0).floor
-          income[:saved] += s
-          m = (wages * p[:match] / 100.0).floor
-          income[:matched] += m
-          account_credits[p[:account].key] = { p[:holding] => s + m }
+          saved = wages * (p[:percent] / 100.0)
+          income[:saved] = saved + income[:saved]
+
+          matched = wages * (p[:match] / 100.0)
+          income[:matched] = matched + income[:matched]
+
+          account_credits[p[:account].key] = { p[:holding] => saved + matched }
         end
+
         { account_credits: account_credits, income: income }
       end
     end

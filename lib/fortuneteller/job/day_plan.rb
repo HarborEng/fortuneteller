@@ -19,18 +19,6 @@ module FortuneTeller
           holding: holding
         }
       end
-
-      def monthly_base(on_date, growth_rates:)
-        (base.on(on_date, growth_rates: growth_rates) / 12.0).floor
-      end
-
-      def calculate_take_home_pay(*args)
-        take_home = monthly_base(*args)
-        savings_plans.each do |s|
-          take_home -= ((s[:percent]/100.0) * take_home).floor
-        end
-        (take_home - (take_home * 0.3).floor)
-      end
     end
   end
 end

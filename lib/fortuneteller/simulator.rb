@@ -39,10 +39,15 @@ module FortuneTeller
       @growth_rates = GrowthRateSet.new(rates, start_year: @beginning.year)
     end
 
-    def calculate_take_home_pay(date)
+    def initial_take_home_pay
       jobs.values.map do |job|
-        job.plan.to_reader.on(date).calculate_take_home_pay(date, growth_rates: growth_rates)
-      end.sum
+        plan = job.plan.to_reader.on(@beginning)
+        monthly_base = (plan.base.initial_value / 12.0).floor
+        plan.savings_plans.each do |savings|
+          monthly_base -= (savings[:percent]/100.0 * monthly_base).floor
+        end
+        monthly_base -= (0.30 * monthly_base).floor
+      end.sum.floor
     end
 
     def simulate
@@ -70,7 +75,7 @@ module FortuneTeller
       # TODO: Force one spending strategy, find a more elegant way to retrieve it
       extra = spending_strategies.values.first.resolution_transforms(state: state)
       unless extra.empty?
-        transforms.concat(extra).sort!
+        transforms = (transforms + extra).sort!
         state = evolve_state(last, transforms, end_date)
       end
       state
@@ -95,7 +100,7 @@ module FortuneTeller
     end
 
     def static_transforms(from:, to:)
-      cache_key = [from, to, growth_rates.hash_key(:inflation), growth_rates.hash_key(:wage_growth)]
+      cache_key = [from, to]
 
       @cached_transforms ||= {}
       @cached_transforms[cache_key] ||= \

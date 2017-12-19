@@ -4,7 +4,7 @@ module FortuneTeller
       private
 
       def gen_transforms(from:, to:, simulator:)
-        benefit = get_benefit_amount(simulator: simulator).on(from, growth_rates: simulator.growth_rates)
+        benefit = get_benefit_amount(simulator: simulator)
         transforms = []
         transforms.push gen_transform(from, benefit) if from.day == 1
         current = next_month(from)

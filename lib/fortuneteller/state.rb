@@ -61,7 +61,8 @@ module FortuneTeller
       apply_cashflow(date: date, holder: holder, cashflow: c)
       account_credits.each do |k, allocations|
         allocations.each do |holding, amount|
-          @accounts[k].credit(amount: amount, on: date, holding: holding)
+          grown_amount = amount.on(date, growth_rates: @growth_rates)
+          @accounts[k].credit(amount: grown_amount, on: date, holding: holding)
         end
       end
     end
@@ -97,12 +98,16 @@ module FortuneTeller
     private
 
     def generate_w2_cashflow(date, income)
+      wages, matched, saved = income.values_at(:wages, :matched, :saved).map do |i|
+        i.on(date, growth_rates: @growth_rates)
+      end
+
       c = {
-        pretax_gross: (income[:wages] + income[:matched]),
-        pretax_salary: income[:wages],
-        pretax_savings: income[:saved],
-        pretax_savings_matched: income[:matched],
-        pretax_adjusted: (income[:wages] - income[:saved])
+        pretax_gross: (wages + matched),
+        pretax_salary: wages,
+        pretax_savings: saved,
+        pretax_savings_matched: matched,
+        pretax_adjusted: (wages - saved)
       }
       c[:tax_withholding] = calculate_w2_withholding(
         date: date,
@@ -114,12 +119,14 @@ module FortuneTeller
     end
 
     def generate_ss_cashflow(date, income)
+      benefit = income[:ss].on(date, growth_rates: @growth_rates)
+
       {
-        pretax_gross: income[:ss],
-        pretax_ss: income[:ss],
-        pretax_adjusted: income[:ss],
+        pretax_gross: benefit,
+        pretax_ss: benefit,
+        pretax_adjusted: benefit,
         tax_withholding: 0,
-        take_home_pay: income[:ss]
+        take_home_pay: benefit
       }
     end
 

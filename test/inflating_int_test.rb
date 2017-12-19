@@ -29,6 +29,23 @@ class InflatingIntTest < MiniTest::Test
     assert_equal 1742_40, replacement_income.on(Date.today + 4.years, growth_rates: higher_rates)
   end
 
+  def test_math
+    growth_rates = FortuneTeller::GrowthRateSet.new(
+      { inflation: [1.01] }, start_year: Date.today.year
+    )
+    wages = FortuneTeller::Utils::InflatingInt.new(int: 100_00, start_date: Date.today)
+
+    one_half = wages * 0.50
+    div_three = wages / 3
+    times_two = wages + wages
+    just_one = wages + FortuneTeller::Utils::InflatingInt.zero
+
+    assert_equal 50_50,  one_half.on(Date.today + 1.year, growth_rates: growth_rates)
+    assert_equal 33_66,  div_three.on(Date.today + 1.year, growth_rates: growth_rates)
+    assert_equal 202_00, times_two.on(Date.today + 1.year, growth_rates: growth_rates)
+    assert_equal 101_00, just_one.on(Date.today + 1.year, growth_rates: growth_rates)
+  end
+
   def test_growth_keys
     inflation = FortuneTeller::Utils::InflatingInt.new(
       int: 1000_00,

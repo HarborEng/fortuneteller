@@ -99,7 +99,8 @@ module FortuneTeller
         plan.beginning.set(
           strategy: :remainder
         )
-        future_take_home_pay = (sim.calculate_take_home_pay(Date.today) * 0.8).floor
+        future_take_home_pay = (sim.initial_take_home_pay * 0.8).floor
+
         plan.on(primary_retirement).set(
           strategy: :exact,
           amount: future_take_home_pay # this will automatically increase with inflation

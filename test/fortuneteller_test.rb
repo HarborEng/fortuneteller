@@ -100,17 +100,6 @@ class FortuneTellerTest < Minitest::Test
     end
   end
 
-  def test_set_wage_growth
-    sim = FortuneTeller.new(Date.today)
-    sim.set_growth_rates(wage_growth: [1.02])
-
-    sim.add_job(:primary) do |plan|
-      plan.beginning.set(base: 120_000_00)
-    end
-
-    assert_equal 7_140_00, sim.calculate_take_home_pay(Date.today + 1.year)
-  end
-
   def real_estate
     sim.add_real_estate do |plan|
       plan.beginning do |p|

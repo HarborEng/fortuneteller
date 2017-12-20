@@ -52,9 +52,9 @@ class FortuneTellerTest < Minitest::Test
 
   def test_account_state
     sim = FortuneTeller.new(Date.today)
-
-    sim.set_growth_rates(
-      stocks: [1.05], bonds: [1.05]
+    growth_rates = FortuneTeller::GrowthRateSet.new(
+      { stocks: [1.05], bonds: [1.05] },
+      start_year: Date.today.year
     )
 
     account_generator = sim.add_account(:primary) do |plan|
@@ -67,7 +67,7 @@ class FortuneTellerTest < Minitest::Test
       )
     end
 
-    state = account_generator.initial_state(start_date: Date.today, growth_rates: sim.growth_rates)
+    state = account_generator.initial_state(start_date: Date.today, growth_rates: growth_rates)
 
     assert_equal(state.balances,
       {
@@ -78,26 +78,6 @@ class FortuneTellerTest < Minitest::Test
 
     state.credit(amount: 1_000_00, holding: :stocks, on: Date.today)
     assert_equal state.balances[:stocks], 301_000_00
-  end
-
-  def test_set_growth_rates
-    Timecop.freeze(Date.parse('2017-01-01')) do
-      sim = FortuneTeller.new(Date.today)
-      sim.set_growth_rates(stocks: [1.25])
-
-      account_generator = sim.add_account(:primary) do |plan|
-        plan.beginning.set(
-          type: :_401k,
-          balances: {
-            stocks: 1000_00,
-          }
-        )
-      end
-
-      this_year = sim.send :initial_state
-      this_year.pass_time(to: Date.parse('2018-01-01'))
-      assert_equal({ stocks: 1250_00 }, this_year.accounts['AA'].balances)
-    end
   end
 
   def real_estate

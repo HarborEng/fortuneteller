@@ -10,5 +10,5 @@ sim = FortuneTeller::Benchmark.create_sim
 
 puts "simulating N=#{trials}:"
 puts Benchmark.measure {
-  trials.times { sim.simulate }
+  trials.times { sim.simulate(**FortuneTeller::Benchmark.default_context) }
 }

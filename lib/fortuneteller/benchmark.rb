@@ -1,7 +1,21 @@
 module FortuneTeller
   class Benchmark
-    def self.run
-      create_sim.simulate
+    def self.run(context = {})
+      create_sim.simulate(**default_context.merge(context))
+    end
+
+    def self.default_context
+      {
+        growth_rates: {
+          # these should match the holdings your retirement accounts have:
+          stocks:       [1.05],
+          bonds:        [1.05],
+
+          # these are reserved parameters for the simulation:
+          wage_growth:  [1.00],
+          inflation:    [1.02]
+        }
+      }
     end
 
     def self.create_sim
@@ -15,16 +29,6 @@ module FortuneTeller
       sim.add_partner(
         gender: :male,
         birthday: Date.new(1966, 5, 5)
-      )
-
-      sim.set_growth_rates(
-        # these should match the holdings your retirement accounts have:
-        stocks:       [1.05],
-        bonds:        [1.05],
-
-        # these are reserved parameters for the simulation:
-        wage_growth:  [1.00],
-        inflation:    [1.02]
       )
 
       # Define primary's key events and holdings

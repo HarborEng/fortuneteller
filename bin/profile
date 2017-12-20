@@ -12,7 +12,7 @@ trials = (ARGV[2] || 1).to_i
 
 sim = FortuneTeller::Benchmark.create_sim
 result = RubyProf.profile do
-  trials.times { sim.simulate }
+  trials.times { sim.simulate(**FortuneTeller::Benchmark.default_context) }
 end
 
 printer = RubyProf::FlameGraphPrinter.new(result)

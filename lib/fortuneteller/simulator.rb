@@ -4,7 +4,7 @@ module FortuneTeller
     OBJECT_TYPES = %i[account job social_security spending_strategy tax_strategy]
     USER_TYPES = %i[primary partner]
 
-    attr_reader :growth_rates, :beginning
+    attr_reader :beginning
 
     USER_TYPES.each do |user_type|
       attr_reader user_type
@@ -35,10 +35,6 @@ module FortuneTeller
       end
     end
 
-    def set_growth_rates(rates)
-      @growth_rates = GrowthRateSet.new(rates, start_year: @beginning.year)
-    end
-
     def initial_take_home_pay
       jobs.values.map do |job|
         plan = job.plan.to_reader.on(@beginning)
@@ -50,10 +46,13 @@ module FortuneTeller
       end.sum.floor
     end
 
-    def simulate
+    def simulate(growth_rates:)
       validate_plan!
-      end_date = first_day_of_year((youngest_birthday.year + 101))
-      states = [initial_state]
+
+      growth_rates = GrowthRateSet.new(growth_rates, start_year: @beginning.year)
+      end_date     = first_day_of_year((youngest_birthday.year + 101))
+      states       = [initial_state(growth_rates)]
+
       while states.last.date != end_date
         states << simulate_next_state(states.last)
       end
@@ -125,9 +124,9 @@ module FortuneTeller
       @primary.nil?
     end
 
-    def initial_state
-      s = FortuneTeller::State.new(start_date: @beginning, growth_rates: @growth_rates)
-      accounts.each { |k, a| s.add_account(key: k, account: a, growth_rates: @growth_rates) }
+    def initial_state(growth_rates)
+      s = FortuneTeller::State.new(start_date: @beginning, growth_rates: growth_rates)
+      accounts.each { |k, a| s.add_account(key: k, account: a, growth_rates: growth_rates) }
       s
     end
 

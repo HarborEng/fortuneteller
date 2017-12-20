@@ -6,7 +6,6 @@ class JobTest < MiniTest::Test
     growth_rates = FortuneTeller::GrowthRateSet.new(
       { wage_growth: [1.02] }, start_year: Date.today.year
     )
-    sim.expect(:growth_rates, growth_rates)
 
     generator = FortuneTeller::Job::Generator.new('AA', Date.today) do |plan|
       plan.beginning.set(base: 120_000_00)

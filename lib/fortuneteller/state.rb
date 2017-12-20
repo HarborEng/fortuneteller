@@ -28,6 +28,7 @@ module FortuneTeller
         primary: Array.new(12) { self.class.cashflow_base },
         partner: Array.new(12) { self.class.cashflow_base }
       }
+      @inflating_int_cache = Utils::InflatingIntCache.new(growth_rates)
     end
 
     def add_account(key:, account:, growth_rates:)
@@ -57,7 +58,7 @@ module FortuneTeller
       apply_cashflow(date: date, holder: holder, cashflow: c)
       account_credits.each do |k, allocations|
         allocations.each do |holding, amount|
-          grown_amount = amount.on(date, growth_rates: @growth_rates)
+          grown_amount = @inflating_int_cache.calculate(amount, date)
           @accounts[k].credit(amount: grown_amount, on: date, holding: holding)
         end
       end
@@ -95,7 +96,7 @@ module FortuneTeller
 
     def generate_w2_cashflow(date, income)
       wages, matched, saved = income.values_at(:wages, :matched, :saved).map do |i|
-        i.on(date, growth_rates: @growth_rates)
+        @inflating_int_cache.calculate(i, date)
       end
 
       c = {
@@ -115,7 +116,7 @@ module FortuneTeller
     end
 
     def generate_ss_cashflow(date, income)
-      benefit = income[:ss].on(date, growth_rates: @growth_rates)
+      benefit = @inflating_int_cache.calculate(income[:ss], date)
 
       {
         pretax_gross: benefit,

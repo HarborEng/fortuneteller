@@ -13,6 +13,7 @@ require 'fortuneteller/cashflow'
 require 'fortuneteller/growth_rate_set'
 
 require 'fortuneteller/utils/inflating_int'
+require 'fortuneteller/utils/inflating_int_cache'
 require 'fortuneteller/utils/social_security'
 
 %i[base account job social_security spending_strategy tax_strategy].each do |object_type|

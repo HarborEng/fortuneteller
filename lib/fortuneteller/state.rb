@@ -34,10 +34,6 @@ module FortuneTeller
       @accounts[key] = account.initial_state(start_date: @date, growth_rates: @growth_rates)
     end
 
-    def growth_rate(key)
-      @growth_rates.annually(key, date.year)
-    end
-
     def pass_time(to:)
       @date = @to = to
       @accounts.each_value { |a| a.pass_time(to: to) }

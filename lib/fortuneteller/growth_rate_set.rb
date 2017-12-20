@@ -6,6 +6,16 @@ module FortuneTeller
       @growth_rates = growth_rates
       @start_year = start_year
       @daily_cache = {}
+      @cumulative_cache = {}
+    end
+
+    def cumulative(key, year)
+      if year <= start_year
+        1
+      else
+        @cumulative_cache[[key, year]] ||=
+          annually(key, year - 1) * cumulative(key, year - 1)
+      end
     end
 
     def annually(key, year)

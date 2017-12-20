@@ -52,18 +52,10 @@ module FortuneTeller
       end
 
       def adjusted_for(year, growth_rates)
-        # we cache this by the particular set of growth rates, as it will
-        # change per each monte carlo simulation, but this object will not be
-        # re-instantiated.
-        hash_key = growth_rates.hash_key(@growth_key)
-        @inflated_cache[hash_key] ||= {}
-        @inflated_cache[hash_key][year] ||= begin
-          if year <= @start_date.year
-            @int
-          else
-            (adjusted_for(year - 1, growth_rates) *
-              growth_rates.annually(@growth_key, year - 1))
-          end
+        if year <= @start_date.year
+          @int
+        else
+          growth_rates.cumulative(@growth_key, year) * @int
         end
       end
     end

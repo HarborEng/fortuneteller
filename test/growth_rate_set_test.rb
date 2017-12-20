@@ -18,6 +18,20 @@ class GrowthRateSetTest < Minitest::Test
     assert_equal set.annually(:stocks, 2020), 5
   end
 
+  def test_cumulative_annual_rate
+    set = FortuneTeller::GrowthRateSet.new(
+      { stocks: [1, 2, 3] },
+      start_year: 2017
+    )
+
+    assert_equal 1,  set.cumulative(:stocks, 2017)
+    assert_equal 1,  set.cumulative(:stocks, 2018)
+    assert_equal 2,  set.cumulative(:stocks, 2019)
+    assert_equal 6,  set.cumulative(:stocks, 2020)
+    assert_equal 6,  set.cumulative(:stocks, 2021)
+    assert_equal 12, set.cumulative(:stocks, 2022)
+  end
+
   def test_daily_growth_rate
     set = FortuneTeller::GrowthRateSet.new(
       { stocks: [1.05] },

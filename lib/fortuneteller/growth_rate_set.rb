@@ -6,15 +6,19 @@ module FortuneTeller
       @growth_rates = growth_rates
       @start_year = start_year
       @daily_cache = {}
-      @cumulative_cache = Hash.new do |h, k| h[k] = {} end
+      @cumulative_cache = Hash.new do |h, key|
+        h[key] = Hash.new do |h2, from_year|
+          h2[from_year] = {}
+        end
+      end
     end
 
-    def cumulative(key, year)
-      if year <= start_year
+    def cumulative(key, from_year, to_year)
+      if to_year <= from_year
         1
       else
-        @cumulative_cache[key][year] ||=
-          annually(key, year - 1) * cumulative(key, year - 1)
+        @cumulative_cache[key][from_year][to_year] ||=
+          annually(key, to_year - 1) * cumulative(key, from_year, to_year - 1)
       end
     end
 

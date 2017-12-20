@@ -55,7 +55,7 @@ module FortuneTeller
         if year <= @start_date.year
           @int
         else
-          growth_rates.cumulative(@growth_key, year) * @int
+          growth_rates.cumulative(@growth_key, @start_date.year, year) * @int
         end
       end
     end

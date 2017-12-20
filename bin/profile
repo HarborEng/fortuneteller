@@ -4,15 +4,17 @@ require 'bundler/setup'
 require 'fortuneteller'
 Bundler.require(:profiling)
 
-raise 'usage: bin/profile <output path> [<flamegraph tool path>] [num trials=1]' unless ARGV.any?
+raise 'usage: bin/profile <output path> [<flamegraph tool path>] [trials=1] [ctxs=1]' unless ARGV.any?
 
 output_path = ARGV.first
 output = File.open(output_path, 'w+')
 trials = (ARGV[2] || 1).to_i
+contexts = (ARGV[3] || 1).to_i
 
 sim = FortuneTeller::Benchmark.create_sim
+growth_streams = FortuneTeller::Benchmark.random_contexts(contexts)
 result = RubyProf.profile do
-  trials.times { sim.simulate(**FortuneTeller::Benchmark.default_context) }
+  trials.times { sim.simulate(growth_rates: growth_streams.sample) }
 end
 
 printer = RubyProf::FlameGraphPrinter.new(result)

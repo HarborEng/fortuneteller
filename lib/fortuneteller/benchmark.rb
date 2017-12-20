@@ -18,6 +18,18 @@ module FortuneTeller
       }
     end
 
+    def self.random_contexts(num)
+      possible_returns = (0.90..1.30).step(0.01).to_a
+      growth_streams = num.times.map do
+        {
+          stocks:      100.times.map { possible_returns.sample },
+          bonds:       100.times.map { possible_returns.sample },
+          inflation:   100.times.map { possible_returns.sample },
+          wage_growth: 100.times.map { possible_returns.sample }
+        }
+      end
+    end
+
     def self.create_sim
       sim = FortuneTeller.new(Date.today)
 

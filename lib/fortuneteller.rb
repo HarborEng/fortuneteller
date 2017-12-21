@@ -20,8 +20,16 @@ require 'fortuneteller/utils/social_security'
   require "fortuneteller/#{object_type}/day_plan"
   require "fortuneteller/#{object_type}/generator"
   require "fortuneteller/#{object_type}/plan"
-  require "fortuneteller/#{object_type}/transform" if File.exist?("lib/fortuneteller/#{object_type}/transform.rb")
-  require "fortuneteller/#{object_type}/state" if File.exist?("lib/fortuneteller/#{object_type}/state.rb")
+
+  begin
+    require "fortuneteller/#{object_type}/transform"
+  rescue LoadError
+  end
+
+  begin
+    require "fortuneteller/#{object_type}/state"
+  rescue LoadError
+  end
 end
 require "fortuneteller/base/plan_reader"
 

@@ -34,7 +34,7 @@ module FortuneTeller
       end
 
       def +(other)
-        if other.initial_value.zero? || (@start_date == other.start_date || @growth_key == other.growth_key)
+        if other.initial_value.zero? || (@start_date == other.start_date && @growth_key == other.growth_key)
           dup_with_value(@int + other.initial_value)
         else
           raise BaseMismatch 

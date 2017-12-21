@@ -115,7 +115,7 @@ module FortuneTeller
         plan.beginning.set(
           strategy: :remainder
         )
-        future_take_home_pay = (sim.initial_take_home_pay * 0.8).floor
+        future_take_home_pay = (sim.initial_take_home_pay * 0.8).round
 
         plan.on(primary_retirement).set(
           strategy: :exact,

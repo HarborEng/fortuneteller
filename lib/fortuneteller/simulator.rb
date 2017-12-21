@@ -38,12 +38,12 @@ module FortuneTeller
     def initial_take_home_pay
       jobs.values.map do |job|
         plan = job.plan.to_reader.on(@beginning)
-        monthly_base = (plan.base.initial_value / 12.0).floor
+        monthly_base = (plan.base.initial_value / 12.0).round
         plan.savings_plans.each do |savings|
-          monthly_base -= (savings[:percent]/100.0 * monthly_base).floor
+          monthly_base -= (savings[:percent]/100.0 * monthly_base).round
         end
-        monthly_base -= (0.30 * monthly_base).floor
-      end.sum.floor
+        monthly_base -= (0.30 * monthly_base).round
+      end.sum.round
     end
 
     def simulate(growth_rates:)

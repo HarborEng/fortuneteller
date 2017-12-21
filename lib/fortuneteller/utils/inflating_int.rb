@@ -18,7 +18,7 @@ module FortuneTeller
       end
 
       def on(date, growth_rates:)
-        adjusted_for(date.year, growth_rates).floor
+        adjusted_for(date.year, growth_rates).round
       end
 
       def initial_value

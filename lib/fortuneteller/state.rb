@@ -129,7 +129,7 @@ module FortuneTeller
 
     def calculate_w2_withholding(date:, adjusted_income:, pay_period:)
       # Ideally, use state to determine w-4 allowances
-      (adjusted_income * 0.3).floor
+      (adjusted_income * 0.3).round
     end
 
     def apply_cashflow(date:, holder:, cashflow:)

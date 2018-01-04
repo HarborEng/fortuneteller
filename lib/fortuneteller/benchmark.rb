@@ -1,7 +1,33 @@
 module FortuneTeller
   class Benchmark
-    def self.run
-      create_sim.simulate
+    def self.run(context = {})
+      create_sim.simulate(**default_context.merge(context))
+    end
+
+    def self.default_context
+      {
+        growth_rates: {
+          # these should match the holdings your retirement accounts have:
+          stocks:       [1.05],
+          bonds:        [1.05],
+
+          # these are reserved parameters for the simulation:
+          wage_growth:  [1.00],
+          inflation:    [1.02]
+        }
+      }
+    end
+
+    def self.random_contexts(num)
+      possible_returns = (0.90..1.30).step(0.01).to_a
+      growth_streams = num.times.map do
+        {
+          stocks:      100.times.map { possible_returns.sample },
+          bonds:       100.times.map { possible_returns.sample },
+          inflation:   100.times.map { possible_returns.sample },
+          wage_growth: 100.times.map { possible_returns.sample }
+        }
+      end
     end
 
     def self.create_sim
@@ -23,7 +49,10 @@ module FortuneTeller
       primary_401k = sim.add_account(:primary) do |plan|
         plan.beginning.set(
           type: :_401k,
-          balance: 500_000_00
+          balances: {
+            stocks: 300_000_00,
+            bonds:  200_000_00
+          }
         )
       end
 
@@ -35,7 +64,8 @@ module FortuneTeller
           p.add_savings_plan(
             percent: 7,
             match: 3,
-            account: primary_401k
+            account: primary_401k,
+            holding: :stocks
           )
         end
         plan.on(primary_retirement).stop
@@ -51,7 +81,9 @@ module FortuneTeller
       partner_401k = sim.add_account(:partner) do |plan|
         plan.beginning.set(
           type: :_401k,
-          balance: 200_000_00
+          balances: {
+            stocks: 200_000_00
+          }
         )
       end
 
@@ -63,7 +95,8 @@ module FortuneTeller
           p.add_savings_plan(
             percent: 7,
             match: 3,
-            account: partner_401k
+            account: partner_401k,
+            holding: :stocks
           )
         end
         plan.on(partner_retirement).stop
@@ -82,10 +115,11 @@ module FortuneTeller
         plan.beginning.set(
           strategy: :remainder
         )
-        future_take_home_pay = (sim.calculate_take_home_pay(Date.today) * 0.8).floor
+        future_take_home_pay = (sim.initial_take_home_pay * 0.8).round
+
         plan.on(primary_retirement).set(
           strategy: :exact,
-          amount: sim.inflating_int(future_take_home_pay)
+          amount: future_take_home_pay # this will automatically increase with inflation
         )
       end
 

@@ -5,10 +5,12 @@ require 'fortuneteller'
 require 'benchmark'
 
 trials = (ARGV[0] || 100).to_i
+contexts = (ARGV[1] || 100).to_i
 
 sim = FortuneTeller::Benchmark.create_sim
+growth_streams = FortuneTeller::Benchmark.random_contexts(contexts)
 
-puts "simulating N=#{trials}:"
+puts "simulating #{trials} trial(s) with #{growth_streams.size} context(s)"
 puts Benchmark.measure {
-  trials.times { sim.simulate }
+  trials.times { sim.simulate(growth_rates: growth_streams.sample) }
 }

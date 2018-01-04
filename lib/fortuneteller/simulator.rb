@@ -4,6 +4,8 @@ module FortuneTeller
     OBJECT_TYPES = %i[account job social_security spending_strategy tax_strategy]
     USER_TYPES = %i[primary partner]
 
+    attr_reader :beginning
+
     USER_TYPES.each do |user_type|
       attr_reader user_type
       define_method :"add_#{user_type}" do |**kwargs|
@@ -33,27 +35,30 @@ module FortuneTeller
       end
     end
 
-    def calculate_take_home_pay(date)
-      jobs.values.each.map{|x| x.plan.to_reader.on(date).calculate_take_home_pay}.sum
+    def initial_take_home_pay
+      jobs.values.map do |job|
+        plan = job.plan.to_reader.on(@beginning)
+        monthly_base = (plan.base.initial_value / 12.0).round
+        plan.savings_plans.each do |savings|
+          monthly_base -= (savings[:percent]/100.0 * monthly_base).round
+        end
+        monthly_base -= (0.30 * monthly_base).round
+      end.sum.round
     end
 
-    def simulate
+    def simulate(growth_rates:)
       validate_plan!
-      end_date = first_day_of_year((youngest_birthday.year + 101))
-      states = [initial_state]
+
+      growth_rates = GrowthRateSet.new(growth_rates, start_year: @beginning.year)
+      end_date     = first_day_of_year((youngest_birthday.year + 101))
+      states       = [initial_state(growth_rates)]
+
       while states.last.date != end_date
         states << simulate_next_state(states.last)
       end
       puts states.as_json if ENV['VERBOSE']
 
       states
-    end
-
-    def inflating_int(int, start_date = nil)
-      FortuneTeller::Utils::InflatingInt.new(
-        int: int,
-        start_date: (start_date.nil? ? @beginning : start_date)
-      )
     end
 
     private
@@ -69,7 +74,7 @@ module FortuneTeller
       # TODO: Force one spending strategy, find a more elegant way to retrieve it
       extra = spending_strategies.values.first.resolution_transforms(state: state)
       unless extra.empty?
-        transforms.concat(extra).sort!
+        transforms = (transforms + extra).sort!
         state = evolve_state(last, transforms, end_date)
       end
       state
@@ -94,8 +99,10 @@ module FortuneTeller
     end
 
     def static_transforms(from:, to:)
+      cache_key = [from, to]
+
       @cached_transforms ||= {}
-      @cached_transforms[[from, to]] ||= \
+      @cached_transforms[cache_key] ||= \
         static_components
           .flat_map(&:values)
           .flat_map do |gen|
@@ -117,9 +124,9 @@ module FortuneTeller
       @primary.nil?
     end
 
-    def initial_state
-      s = FortuneTeller::State.new(start_date: @beginning)
-      accounts.each { |k, a| s.add_account(key: k, account: a) }
+    def initial_state(growth_rates)
+      s = FortuneTeller::State.new(start_date: @beginning, growth_rates: growth_rates)
+      accounts.each { |k, a| s.add_account(key: k, account: a, growth_rates: growth_rates) }
       s
     end
 

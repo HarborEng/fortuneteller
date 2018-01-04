@@ -40,7 +40,10 @@ primary_retirement = Date.new(2031, 3, 1)
 primary_401k = sim.add_account(:primary) do |plan|
   plan.beginning.set(
     type: :_401k,
-    balance: 500_000_00
+    balances: {
+      stocks: 300_000_00,
+      bonds:  200_000_00
+    }
   )
 end
 
@@ -52,7 +55,8 @@ sim.add_job(:primary) do |plan|
     p.add_savings_plan(
       percent: 7,
       match: 3,
-      account: primary_401k
+      account: primary_401k,
+      holding: :stocks
     )
   end
   plan.on(primary_retirement).stop
@@ -68,7 +72,9 @@ partner_retirement = Date.new(2033, 5, 1)
 partner_401k = sim.add_account(:partner) do |plan|
   plan.beginning.set(
     type: :_401k,
-    balance: 200_000_00
+    balances: {
+      stocks: 200_000_00
+    }
   )
 end
 
@@ -80,7 +86,8 @@ sim.add_job(:partner) do |plan|
     p.add_savings_plan(
       percent: 7,
       match: 3,
-      account: partner_401k
+      account: partner_401k,
+      holding: :stocks
     )
   end
   plan.on(partner_retirement).stop
@@ -99,10 +106,10 @@ sim.add_spending_strategy do |plan|
   plan.beginning.set(
     strategy: :remainder
   )
-  future_take_home_pay = (sim.calculate_take_home_pay(Date.today) * 0.8).floor
+  future_take_home_pay = (sim.initial_take_home_pay * 0.8).round
   plan.on(primary_retirement).set(
     strategy: :exact,
-    amount: sim.inflating_int(future_take_home_pay)
+    amount: future_take_home_pay # this will automatically increase with inflation
   )
 end
 
@@ -114,7 +121,17 @@ sim.add_tax_strategy do |plan|
 end
 
 # Run!
-sim.simulate
+sim.simulate(
+  growth_rates: {
+    # these should match the holdings your retirement accounts have:
+    stocks:       [1.05],
+    bonds:        [1.05],
+
+    # these are reserved parameters for the simulation:
+    wage_growth:  [1.00],
+    inflation:    [1.02]
+  }
+)
 ```
 
 ## Development

@@ -1,7 +1,7 @@
 module FortuneTeller
   # We extend `state` Hash with this module for readability
   class State
-    attr_reader :date, :accounts, :cashflow, :from, :to
+    attr_reader :date, :accounts, :cashflow, :from, :to, :growth_rates
 
     def self.cashflow_base
       {
@@ -16,9 +16,10 @@ module FortuneTeller
       }
     end
 
-    def initialize(start_date:, previous: nil)
+    def initialize(start_date:, growth_rates:, previous: nil)
       @from = start_date.dup
       @date = start_date
+      @growth_rates = growth_rates
       @accounts = {}
       unless previous.nil?
         previous.accounts.each { |k, a| @accounts[k] = a.dup }
@@ -27,15 +28,15 @@ module FortuneTeller
         primary: Array.new(12) { self.class.cashflow_base },
         partner: Array.new(12) { self.class.cashflow_base }
       }
+      @inflating_int_cache = Utils::InflatingIntCache.new(growth_rates)
     end
 
-    def add_account(key:, account:)
-      @accounts[key] = account.initial_state(start_date: @date)
+    def add_account(key:, account:, growth_rates:)
+      @accounts[key] = account.initial_state(start_date: @date, growth_rates: @growth_rates)
     end
 
     def pass_time(to:)
-      @date = to
-      @to = to
+      @date = @to = to
       @accounts.each_value { |a| a.pass_time(to: to) }
     end
 
@@ -55,8 +56,11 @@ module FortuneTeller
     def apply_w2_income(date:, holder:, income:, account_credits:)
       c = generate_w2_cashflow(date, income)
       apply_cashflow(date: date, holder: holder, cashflow: c)
-      account_credits.each do |k, amount|
-        @accounts[k].credit(amount: amount, on: date)
+      account_credits.each do |k, allocations|
+        allocations.each do |holding, amount|
+          grown_amount = @inflating_int_cache.calculate(amount, date)
+          @accounts[k].credit(amount: grown_amount, on: date, holding: holding)
+        end
       end
     end
 
@@ -66,7 +70,11 @@ module FortuneTeller
     end
 
     def init_next
-      self.class.new(start_date: @date, previous: self)
+      self.class.new(
+        start_date: @date,
+        growth_rates: @growth_rates,
+        previous: self
+      )
     end
 
     def merged_cashflow(holder:)
@@ -87,12 +95,16 @@ module FortuneTeller
     private
 
     def generate_w2_cashflow(date, income)
+      wages, matched, saved = income.values_at(:wages, :matched, :saved).map do |i|
+        @inflating_int_cache.calculate(i, date)
+      end
+
       c = {
-        pretax_gross: (income[:wages] + income[:matched]),
-        pretax_salary: income[:wages],
-        pretax_savings: income[:saved],
-        pretax_savings_matched: income[:matched],
-        pretax_adjusted: (income[:wages] - income[:saved])
+        pretax_gross: (wages + matched),
+        pretax_salary: wages,
+        pretax_savings: saved,
+        pretax_savings_matched: matched,
+        pretax_adjusted: (wages - saved)
       }
       c[:tax_withholding] = calculate_w2_withholding(
         date: date,
@@ -104,18 +116,20 @@ module FortuneTeller
     end
 
     def generate_ss_cashflow(date, income)
+      benefit = @inflating_int_cache.calculate(income[:ss], date)
+
       {
-        pretax_gross: income[:ss],
-        pretax_ss: income[:ss],
-        pretax_adjusted: income[:ss],
+        pretax_gross: benefit,
+        pretax_ss: benefit,
+        pretax_adjusted: benefit,
         tax_withholding: 0,
-        take_home_pay: income[:ss]
+        take_home_pay: benefit
       }
     end
 
     def calculate_w2_withholding(date:, adjusted_income:, pay_period:)
       # Ideally, use state to determine w-4 allowances
-      (adjusted_income * 0.3).floor
+      (adjusted_income * 0.3).round
     end
 
     def apply_cashflow(date:, holder:, cashflow:)

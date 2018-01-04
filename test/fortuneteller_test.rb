@@ -1,5 +1,4 @@
 require 'test_helper'
-require 'date'
 
 class FortuneTellerTest < Minitest::Test
 
@@ -26,100 +25,59 @@ class FortuneTellerTest < Minitest::Test
     assert_equal Date.new(1966, 5, 5), sim.partner.birthday
   end
 
-  def test_simulation
-    # Initialize FortuneTeller
+  def test_add_accounts
     sim = FortuneTeller.new(Date.today)
 
-    sim.add_primary(
-      gender: :female,
-      birthday: Date.new(1964, 3, 2)
-    )
-
-    sim.add_partner(
-      gender: :male,
-      birthday: Date.new(1966, 5, 5)
-    )
-
-    # Define primary's key events and holdings
-    primary_retirement = Date.new(2031, 3, 1)
-
-    primary_401k = sim.add_account(:primary) do |plan|
+    sim.add_account(:primary) do |plan|
       plan.beginning.set(
         type: :_401k,
-        balance: 500_000_00
+        balances: {
+          stocks: 300_000_00,
+          bonds:  200_000_00
+        }
       )
     end
 
-    sim.add_job(:primary) do |plan|
-      plan.beginning do |p|
-        p.set(
-          base: 100_000_00,
-        )
-        p.add_savings_plan(
-          percent: 7,
-          match: 3,
-          account: primary_401k
-        )
-      end
-      plan.on(primary_retirement).stop
-    end
+    assert_equal sim.accounts.size, 1
+    
+    new_account = sim.accounts.values.first
+    assert_equal new_account.plan.day_plans.size, 1
+    assert_equal(new_account.plan.day_plans.first.balances,
+      {
+        stocks: 300_000_00,
+        bonds:  200_000_00
+      }
+    )
+  end
 
-    sim.add_social_security(:primary) do |plan|
-      plan.on(primary_retirement).start
-    end
+  def test_account_state
+    sim = FortuneTeller.new(Date.today)
+    growth_rates = FortuneTeller::GrowthRateSet.new(
+      { stocks: [1.05], bonds: [1.05] },
+      start_year: Date.today.year
+    )
 
-    # Define partner's key events and holdings
-    partner_retirement = Date.new(2033, 5, 1)
-
-    partner_401k = sim.add_account(:partner) do |plan|
+    account_generator = sim.add_account(:primary) do |plan|
       plan.beginning.set(
         type: :_401k,
-        balance: 200_000_00
+        balances: {
+          stocks: 300_000_00,
+          bonds:  200_000_00
+        }
       )
     end
 
-    sim.add_job(:partner) do |plan|
-      plan.beginning do |p|
-        p.set(
-          base: 75_000_00,
-        )
-        p.add_savings_plan(
-          percent: 7,
-          match: 3,
-          account: partner_401k
-        )
-      end
-      plan.on(partner_retirement).stop
-    end
+    state = account_generator.initial_state(start_date: Date.today, growth_rates: growth_rates)
 
-    sim.add_social_security(:partner) do |plan|
-      plan.on(partner_retirement).start(
-        pia: 1000_00
-      )
-    end
+    assert_equal(state.balances,
+      {
+        stocks: 300_000_00,
+        bonds:  200_000_00
+      }
+    )
 
-    # Start by spending the leftovers (after tax and saving) and change to
-    # spending an exact amount in retirement
-
-    sim.add_spending_strategy do |plan|
-      plan.beginning.set(
-        strategy: :remainder
-      )
-      future_take_home_pay = (sim.calculate_take_home_pay(Date.today) * 0.8).floor
-      plan.on(primary_retirement).set(
-        strategy: :exact,
-        amount: sim.inflating_int(future_take_home_pay)
-      )
-    end
-
-    sim.add_tax_strategy do |plan|
-      plan.beginning.set(
-        primary: :married_filing_jointly,
-        partner: :married_filing_jointly
-      )
-    end
-    # Run!
-    sim.simulate
+    state.credit(amount: 1_000_00, holding: :stocks, on: Date.today)
+    assert_equal state.balances[:stocks], 301_000_00
   end
 
   def real_estate

@@ -4,7 +4,7 @@ module FortuneTeller
       attr_accessor :strategy, :amount
       def set(strategy:, amount: nil)
         @strategy = strategy
-        @amount = amount
+        @amount = inflating_int(amount, :inflation)
       end
     end
   end

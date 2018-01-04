@@ -6,7 +6,7 @@ module FortuneTeller
 
       def gen_transforms(from:, to:, simulator:)
         # TODO: Update so it responds to changes within the year
-        fields = gen_transform_fields( plan.to_reader.on(from) )
+        fields = gen_transform_fields(plan.to_reader.on(from), from)
         transforms = []
         transforms.push gen_transform(from, fields) if from.day == 1
         current = next_month(from)
@@ -23,17 +23,26 @@ module FortuneTeller
         self.class.parent::Transform.new(date: date, holder: @holder, **fields)
       end
 
-      def gen_transform_fields(day_plan)
-        wages = (day_plan.base / 12.0).floor
+      def gen_transform_fields(day_plan, from)
+        wages = day_plan.base / 12.0
         account_credits = {}
-        income = { wages: wages, saved: 0, matched: 0, pay_period: :monthly }
+        income = {
+          wages: wages,
+          saved: Utils::InflatingInt.zero,
+          matched: Utils::InflatingInt.zero,
+          pay_period: :monthly
+        }
+
         day_plan.savings_plans.each do |p|
-          s = (wages * p[:percent] / 100.0).floor
-          income[:saved] += s
-          m = (wages * p[:match] / 100.0).floor
-          income[:matched] += m
-          account_credits[p[:account].key] = s + m
+          saved = wages * (p[:percent] / 100.0)
+          income[:saved] = saved + income[:saved]
+
+          matched = wages * (p[:match] / 100.0)
+          income[:matched] = matched + income[:matched]
+
+          account_credits[p[:account].key] = { p[:holding] => saved + matched }
         end
+
         { account_credits: account_credits, income: income }
       end
     end

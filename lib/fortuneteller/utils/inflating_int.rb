@@ -2,13 +2,61 @@ module FortuneTeller
   module Utils
     # An integer that inflates with time
     class InflatingInt
-      def initialize(int:, start_date:)
-        @int = int
-        @start_date = start_date
+      BaseMismatch = Class.new(StandardError)
+
+      def self.zero
+        @zero ||= new(int: 0, start_date: nil, growth_key: nil).freeze
       end
 
-      def on(date)
-        (@int * 1.02**(date.year - @start_date.year)).floor
+      attr_reader :start_date, :growth_key
+
+      def initialize(int:, start_date:, growth_key: :inflation)
+        @int = int
+        @start_date = start_date
+        @growth_key = growth_key
+        @inflated_cache = {}
+      end
+
+      def on(date, growth_rates:)
+        adjusted_for(date.year, growth_rates).round
+      end
+
+      def initial_value
+        @int
+      end
+
+      def *(coef)
+        dup_with_value(@int * coef)
+      end
+
+      def /(denom)
+        dup_with_value(@int / denom)
+      end
+
+      def +(other)
+        if other.initial_value.zero? || (@start_date == other.start_date && @growth_key == other.growth_key)
+          dup_with_value(@int + other.initial_value)
+        else
+          raise BaseMismatch 
+        end
+      end
+
+      private
+
+      def dup_with_value(val)
+        self.class.new(
+          int: val,
+          start_date: @start_date,
+          growth_key: @growth_key
+        )
+      end
+
+      def adjusted_for(year, growth_rates)
+        if year <= @start_date.year
+          @int
+        else
+          growth_rates.cumulative(@growth_key, @start_date.year, year) * @int
+        end
       end
     end
   end

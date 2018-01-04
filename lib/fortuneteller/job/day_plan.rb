@@ -8,23 +8,16 @@ module FortuneTeller
       end
 
       def set(base:)
-        @base = base
+        @base = inflating_int(base, :wage_growth)
       end
 
-      def add_savings_plan(percent:, match:, account:)
+      def add_savings_plan(percent:, match:, account:, holding:)
         @savings_plans << {
           percent: percent,
           match: match,
-          account: account
+          account: account,
+          holding: holding
         }
-      end
-
-      def calculate_take_home_pay
-        take_home = (base/12.0).floor
-        savings_plans.each do |s|
-          take_home -= ((s[:percent]/100.0) * take_home).floor
-        end
-        (take_home - (take_home * 0.3).floor)
       end
     end
   end

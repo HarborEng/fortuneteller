@@ -8,7 +8,7 @@ module FortuneTeller
           date = determine_transform_date(state, i)
           data = reader.on(date)
           next if data.nil? or data.strategy == :remainder
-          amount = data.amount.on(date) - determine_take_home_pay(state, i)
+          amount = data.amount.on(date, growth_rates: state.growth_rates) - determine_take_home_pay(state, i)
           transforms.push(gen_transform(date, amount)) if amount.positive?
         end
         transforms

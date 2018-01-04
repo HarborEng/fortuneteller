@@ -1,6 +1,6 @@
 module FortuneTeller
   module SpendingStrategy
-    class Generator < FortuneTeller::Base::Generator
+    class Component < FortuneTeller::Base::Component
       def resolution_transforms(state:)
         transforms = []
         reader = plan.to_reader

@@ -1,6 +1,6 @@
 module FortuneTeller
   module SocialSecurity
-    class Generator < FortuneTeller::Base::Generator
+    class Component < FortuneTeller::Base::Component
       private
 
       def gen_transforms(from:, to:, simulator:)

@@ -1,6 +1,6 @@
 module FortuneTeller
   module Job
-    class Generator < FortuneTeller::Base::Generator
+    class Component < FortuneTeller::Base::Component
 
       private
 

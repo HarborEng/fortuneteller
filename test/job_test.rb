@@ -7,11 +7,11 @@ class JobTest < MiniTest::Test
       { wage_growth: [1.02] }, start_year: Date.today.year
     )
 
-    generator = FortuneTeller::Job::Generator.new('AA', Date.today) do |plan|
+    component = FortuneTeller::Job::Component.new('AA', Date.today) do |plan|
       plan.beginning.set(base: 120_000_00)
     end
 
-    transforms = generator.bounded_gen_transforms(
+    transforms = component.bounded_gen_transforms(
       from: Date.today + 1.year,
       to: Date.today + 2.years,
       simulator: sim

@@ -57,7 +57,7 @@ class FortuneTellerTest < Minitest::Test
       start_year: Date.today.year
     )
 
-    account_generator = sim.add_account(:primary) do |plan|
+    account_component = sim.add_account(:primary) do |plan|
       plan.beginning.set(
         type: :_401k,
         balances: {
@@ -67,7 +67,7 @@ class FortuneTellerTest < Minitest::Test
       )
     end
 
-    state = account_generator.initial_state(start_date: Date.today, growth_rates: growth_rates)
+    state = account_component.initial_state(start_date: Date.today, growth_rates: growth_rates)
 
     assert_equal(state.balances,
       {

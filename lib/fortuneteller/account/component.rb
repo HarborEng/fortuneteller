@@ -1,6 +1,6 @@
 module FortuneTeller
   module Account
-    class Generator < FortuneTeller::Base::Generator
+    class Component < FortuneTeller::Base::Component
       def initial_state(start_date:, growth_rates:)
         initial = plan.to_reader.on(start_date)
         Account::State.new(

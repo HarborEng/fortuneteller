@@ -1,6 +1,6 @@
 module FortuneTeller
   module TaxStrategy
-    class Generator < FortuneTeller::Base::Generator
+    class Component < FortuneTeller::Base::Component
       
     end
   end

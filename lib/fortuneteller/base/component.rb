@@ -1,6 +1,6 @@
 module FortuneTeller
   module Base
-    class Generator
+    class Component
       attr_reader :plan, :key, :holder
       def initialize(key, beginning=nil, holder=nil, &block)
         @key = key

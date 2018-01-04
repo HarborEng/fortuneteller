@@ -19,9 +19,9 @@ module FortuneTeller
     OBJECT_TYPES.each do |object_type|
       attr_reader object_type.to_s.pluralize.to_sym
       define_method :"add_#{object_type}" do |holder=nil, &block|
-        generator = "fortune_teller/#{object_type}/generator".classify.constantize
+        component = "fortune_teller/#{object_type}/component".classify.constantize
         key = @available_keys.shift
-        obj = generator.new(key, @beginning, holder, &block)
+        obj = component.new(key, @beginning, holder, &block)
         collection = send(object_type.to_s.pluralize.to_sym)[key] = obj
         obj
       end

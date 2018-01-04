@@ -18,7 +18,7 @@ require 'fortuneteller/utils/social_security'
 
 %i[base account job social_security spending_strategy tax_strategy].each do |object_type|
   require "fortuneteller/#{object_type}/day_plan"
-  require "fortuneteller/#{object_type}/generator"
+  require "fortuneteller/#{object_type}/component"
   require "fortuneteller/#{object_type}/plan"
 
   begin

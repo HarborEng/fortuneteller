@@ -12,6 +12,8 @@ require 'fortuneteller/state'
 require 'fortuneteller/cashflow'
 require 'fortuneteller/growth_rate_set'
 
+require 'fortuneteller/errors/plan_setup_error'
+
 require 'fortuneteller/utils/inflating_int'
 require 'fortuneteller/utils/inflating_int_cache'
 require 'fortuneteller/utils/social_security'
@@ -20,6 +22,11 @@ require 'fortuneteller/utils/social_security'
   require "fortuneteller/#{object_type}/day_plan"
   require "fortuneteller/#{object_type}/component"
   require "fortuneteller/#{object_type}/plan"
+
+  begin
+    require "fortuneteller/#{object_type}/generator"
+  rescue LoadError
+  end
 
   begin
     require "fortuneteller/#{object_type}/transform"

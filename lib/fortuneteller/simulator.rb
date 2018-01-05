@@ -9,6 +9,7 @@ module FortuneTeller
     USER_TYPES.each do |user_type|
       attr_reader user_type
       define_method :"add_#{user_type}" do |**kwargs|
+        raise FortuneTeller::PlanSetupError.new(:plan_finalized) if @finalized
         instance_variable_set(
           :"@#{user_type}", 
           FortuneTeller::Person.new(**kwargs)
@@ -19,6 +20,7 @@ module FortuneTeller
     OBJECT_TYPES.each do |object_type|
       attr_reader object_type.to_s.pluralize.to_sym
       define_method :"add_#{object_type}" do |holder=nil, &block|
+        raise FortuneTeller::PlanSetupError.new(:plan_finalized) if @finalized
         component = "fortune_teller/#{object_type}/component".classify.constantize
         key = @available_keys.shift
         obj = component.new(key, @beginning, holder, &block)
@@ -27,9 +29,11 @@ module FortuneTeller
       end
     end
 
-    def initialize(beginning)
+    def initialize(beginning, end_age=100)
       @beginning = beginning
+      @end_age = end_age
       @available_keys = ('AA'..'ZZ').to_a
+      @finalized = false
       OBJECT_TYPES.each do |object_type|
         send("#{object_type.to_s.pluralize}=".to_sym, {})
       end
@@ -47,13 +51,12 @@ module FortuneTeller
     end
 
     def simulate(growth_rates:)
-      validate_plan!
+      finalize_plan! unless @finalized
 
       growth_rates = GrowthRateSet.new(growth_rates, start_year: @beginning.year)
-      end_date     = first_day_of_year((youngest_birthday.year + 101))
       states       = [initial_state(growth_rates)]
 
-      while states.last.date != end_date
+      while states.last.date != @end_date
         states << simulate_next_state(states.last)
       end
       puts states.as_json if ENV['VERBOSE']
@@ -61,10 +64,33 @@ module FortuneTeller
       states
     end
 
+    def start_year
+      beginning.year
+    end
+
+    def end_year
+      @end_date.year-1
+    end
+
     private
 
     OBJECT_TYPES.each do |object_type|
       attr_writer object_type.to_s.pluralize.to_sym
+    end
+
+    def finalize_plan!
+      validate_plan!
+
+      #finalize end_date
+      @end_date = first_day_of_year((youngest_birthday.year + @end_age + 1))
+
+      plan_components.each do |component_types|
+        component_types.values.each do |c|
+          c.build_generators(self)
+        end
+      end
+
+      @finalized = true
     end
 
     def simulate_next_state(last)
@@ -91,29 +117,58 @@ module FortuneTeller
       state
     end
 
+    def plan_components
+      @plan_components ||=
+        # Keep spending strategy last
+        %i[job].map do |object_type|
+          send(object_type.to_s.pluralize.to_sym)
+        end
+    end
+
     def static_components
       @static_components ||=
-        %i[job social_security].map do |object_type|
+        %i[social_security].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
     end
 
     def static_transforms(from:, to:)
-      cache_key = [from, to]
-
-      @cached_transforms ||= {}
-      @cached_transforms[cache_key] ||= \
+      [
         static_components
           .flat_map(&:values)
           .flat_map do |gen|
             gen.bounded_gen_transforms(from: from, to: to, simulator: self)
-          end
-          .sort
+          end,
+        plan_components
+          .flat_map(&:values)
+          .flat_map do |component|
+            component.generators[from.year].gen_transforms(simulator: self)
+          end,
+      ].flatten
     end
+
+    # def static_transforms(from:, to:)
+    #   cache_key = [from, to]
+
+    #   @cached_transforms ||= {}
+    #   @cached_transforms[cache_key] ||= \
+    #     static_components
+    #       .flat_map(&:values)
+    #       .flat_map do |gen|
+    #         gen.bounded_gen_transforms(from: from, to: to, simulator: self)
+    #       end
+    #       .sort
+    # end
 
     def youngest_birthday
       return @primary.birthday if no_partner?
       [@primary.birthday, @partner.birthday].min
+    end
+
+    def initial_state(growth_rates)
+      s = FortuneTeller::State.new(start_date: @beginning, growth_rates: growth_rates)
+      accounts.each { |k, a| s.add_account(key: k, account: a, growth_rates: growth_rates) }
+      s
     end
 
     def no_partner?
@@ -124,14 +179,12 @@ module FortuneTeller
       @primary.nil?
     end
 
-    def initial_state(growth_rates)
-      s = FortuneTeller::State.new(start_date: @beginning, growth_rates: growth_rates)
-      accounts.each { |k, a| s.add_account(key: k, account: a, growth_rates: growth_rates) }
-      s
-    end
-
     def validate_plan!
-      throw 'Please assign primary' if no_primary?
+      if no_primary? and no_partner?
+        raise FortuneTeller::PlanSetupError.new(:no_person)
+      elsif no_primary?
+        raise FortuneTeller::PlanSetupError.new(:no_primary_person)
+      end
     end
   end
 end

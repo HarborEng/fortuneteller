@@ -21,28 +21,28 @@ module FortuneTeller
       end
 
       def generator_data
-        return @generator_data unless @generator_data.nil?
+        @generator_data ||= begin
+          wages = base / 12.0
+          account_credits = {}
+          income = {
+            wages: wages,
+            saved: Utils::InflatingInt.zero,
+            matched: Utils::InflatingInt.zero,
+            pay_period: :monthly
+          }
 
-        wages = base / 12.0
-        account_credits = {}
-        income = {
-          wages: wages,
-          saved: Utils::InflatingInt.zero,
-          matched: Utils::InflatingInt.zero,
-          pay_period: :monthly
-        }
+          savings_plans.each do |p|
+            saved = wages * (p[:percent] / 100.0)
+            income[:saved] = saved + income[:saved]
 
-        savings_plans.each do |p|
-          saved = wages * (p[:percent] / 100.0)
-          income[:saved] = saved + income[:saved]
+            matched = wages * (p[:match] / 100.0)
+            income[:matched] = matched + income[:matched]
 
-          matched = wages * (p[:match] / 100.0)
-          income[:matched] = matched + income[:matched]
+            account_credits[p[:account].key] = { p[:holding] => saved + matched }
+          end
 
-          account_credits[p[:account].key] = { p[:holding] => saved + matched }
-        end
-
-        @generator_data = { account_credits: account_credits, income: income }        
+          { account_credits: account_credits, income: income }  
+        end      
       end
     end
   end

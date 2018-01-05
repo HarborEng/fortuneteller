@@ -3,8 +3,7 @@ require 'test_helper'
 class JobTest < MiniTest::Test
   def test_wage_growth
     sim = MiniTest::Mock.new
-    sim.expect(:start_year, Date.today.year)
-    sim.expect(:end_year, Date.today.year+1)
+    sim.expect(:years, (Date.today.year..(Date.today.year+1)))
     sim.expect(:beginning, Date.today)
 
     growth_rates = FortuneTeller::GrowthRateSet.new(

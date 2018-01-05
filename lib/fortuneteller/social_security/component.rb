@@ -1,23 +1,24 @@
 module FortuneTeller
   module SocialSecurity
     class Component < FortuneTeller::Base::Component
-      private
 
-      def gen_transforms(from:, to:, simulator:)
+      def build_generators(simulator)
+        reader = plan.to_reader
         benefit = get_benefit_amount(simulator: simulator)
-        transforms = []
-        transforms.push gen_transform(from, benefit) if from.day == 1
-        current = next_month(from)
-        while current < to
-          transforms.push gen_transform(current, benefit)
-          current = next_month(current)
+
+        # somewhat inefficient to look at dayplan since benefit is totally indepedent
+        # but keeping this pattern for consistency and because SS in the future might 
+        # have stops and starts
+        simulator.years.each do |year|
+          data = (1..12).map do |month|
+            day_plan = reader.on(Date.new(year, month, 1))
+            (day_plan.nil? ? nil : benefit)
+          end
+          generators[year] = FortuneTeller::SocialSecurity::Generator.new(data: data, holder: holder, year: year)
         end
-        transforms
       end
 
-      def gen_transform(date, benefit)
-        self.class.parent::Transform.new(date: date, holder: holder, benefit: benefit)
-      end
+      private
 
       def get_benefit_amount(simulator:)
         @benefit ||= begin

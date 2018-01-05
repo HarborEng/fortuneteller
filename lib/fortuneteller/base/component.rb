@@ -1,7 +1,7 @@
 module FortuneTeller
   module Base
     class Component
-      attr_reader :plan, :key, :holder
+      attr_reader :plan, :key, :holder, :generators
       def initialize(key, beginning=nil, holder=nil, &block)
         @key = key
         @holder = holder
@@ -10,6 +10,7 @@ module FortuneTeller
         @plan.finalize
         @start_date = @plan.start_date
         @end_date = @plan.end_date
+        @generators = {}
       end
 
       def bounded_gen_transforms(from:, to:, simulator:)

@@ -72,6 +72,10 @@ module FortuneTeller
       @end_date.year-1
     end
 
+    def years
+      (start_year..end_year)
+    end
+
     private
 
     OBJECT_TYPES.each do |object_type|
@@ -120,7 +124,7 @@ module FortuneTeller
     def plan_components
       @plan_components ||=
         # Keep spending strategy last
-        %i[job].map do |object_type|
+        %i[job social_security].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
     end
@@ -133,18 +137,11 @@ module FortuneTeller
     end
 
     def static_transforms(from:, to:)
-      [
-        static_components
-          .flat_map(&:values)
-          .flat_map do |gen|
-            gen.bounded_gen_transforms(from: from, to: to, simulator: self)
-          end,
-        plan_components
-          .flat_map(&:values)
-          .flat_map do |component|
-            component.generators[from.year].gen_transforms(simulator: self)
-          end,
-      ].flatten
+      plan_components
+        .flat_map(&:values)
+        .flat_map do |component|
+          component.generators[from.year].gen_transforms(simulator: self)
+        end
     end
 
     # def static_transforms(from:, to:)

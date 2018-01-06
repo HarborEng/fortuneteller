@@ -9,4 +9,5 @@
 /tmp/
 /.idea/
 .DS_Store
+flamegraph.pl
 *.gem

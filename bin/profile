@@ -31,5 +31,5 @@ if ARGV.size >= 2
     exit 1
   end
 
-  `cat #{output_path} | #{flamegraph_path}/flamegraph.pl --countname=ms --width=1600 > #{output_path}.svg`
+  `cat #{output_path} | perl #{flamegraph_path}/flamegraph.pl --countname=ms --width=1400 > #{output_path}.svg`
 end

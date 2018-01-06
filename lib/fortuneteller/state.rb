@@ -1,7 +1,7 @@
 module FortuneTeller
   # We extend `state` Hash with this module for readability
   class State
-    attr_reader :date, :accounts, :cashflow, :from, :to, :growth_rates
+    attr_reader :date, :accounts, :cashflow, :from, :to, :growth_rates, :inflating_int_cache
 
     def self.cashflow_base
       {

@@ -50,6 +50,14 @@ module FortuneTeller
       end.sum.round
     end
 
+    def take_homes_without_withdrawals(year, month)
+      plan_components_without_withdrawals
+        .flat_map(&:values)
+        .map do |c|
+          c.generators[year].take_home_pay(month: month)
+        end
+    end
+
     def simulate(growth_rates:)
       finalize_plan! unless @finalized
 
@@ -99,15 +107,8 @@ module FortuneTeller
 
     def simulate_next_state(last)
       end_date = first_day_of_year((last.date.year + 1))
-      transforms = static_transforms(from: last.date, to: end_date)
-      state = evolve_state(last, transforms, end_date)
-      # TODO: Force one spending strategy, find a more elegant way to retrieve it
-      extra = spending_strategies.values.first.resolution_transforms(state: state)
-      unless extra.empty?
-        transforms = (transforms + extra).sort!
-        state = evolve_state(last, transforms, end_date)
-      end
-      state
+      transforms = plan_transforms(from: last.date, to: end_date)
+      evolve_state(last, transforms, end_date)
     end
 
     def first_day_of_year(year)
@@ -116,46 +117,40 @@ module FortuneTeller
 
     def evolve_state(state, transforms, to)
       state = state.init_next
-      transforms.each { |t| t.apply_to(state) }
+      transforms.each do |t| 
+        t.apply_to(state)
+      end
       state.pass_time(to: to)
       state
     end
 
-    def plan_components
-      @plan_components ||=
-        # Keep spending strategy last
+    def plan_components_without_withdrawals
+      @plan_components_without_withdrawals ||=
         %i[job social_security].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
     end
 
-    def static_components
-      @static_components ||=
-        %i[social_security].map do |object_type|
+    def plan_components
+      @plan_components ||=
+        # Keep spending strategy last
+        %i[job social_security spending_strategy].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
     end
 
-    def static_transforms(from:, to:)
-      plan_components
-        .flat_map(&:values)
-        .flat_map do |component|
-          component.generators[from.year].gen_transforms(simulator: self)
-        end
+    def plan_transforms(from:, to:)
+      cache_key = [from, to]
+      @cached_transforms ||= {}
+      @cached_transforms[cache_key] ||= begin     
+        plan_components
+          .flat_map(&:values)
+          .flat_map do |component|
+            component.generators[from.year].gen_transforms(simulator: self)
+          end
+          .sort
+      end
     end
-
-    # def static_transforms(from:, to:)
-    #   cache_key = [from, to]
-
-    #   @cached_transforms ||= {}
-    #   @cached_transforms[cache_key] ||= \
-    #     static_components
-    #       .flat_map(&:values)
-    #       .flat_map do |gen|
-    #         gen.bounded_gen_transforms(from: from, to: to, simulator: self)
-    #       end
-    #       .sort
-    # end
 
     def youngest_birthday
       return @primary.birthday if no_partner?

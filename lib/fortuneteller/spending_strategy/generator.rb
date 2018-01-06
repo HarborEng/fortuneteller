@@ -1,18 +1,9 @@
 module FortuneTeller
-  module Job
+  module SpendingStrategy
     class Generator < FortuneTeller::Base::Generator
       def initialize(data:, holder:, year:)
         @data = data
         super(holder: holder, year: year)
-      end
-
-      def take_home_pay(month:)
-        return Utils::InflatingInt.zero if @data[(month-1)].nil?
-
-        d = @data[(month-1)]
-
-        pay = (d[:income][:wages]-d[:income][:saved])
-        pay -= (pay * 0.3)
       end
       
       private

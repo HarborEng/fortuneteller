@@ -41,6 +41,14 @@ module FortuneTeller
         end
       end
 
+      def -(other)
+        if other.initial_value.zero? || (@start_date == other.start_date && @growth_key == other.growth_key)
+          dup_with_value(@int - other.initial_value)
+        else
+          raise BaseMismatch 
+        end
+      end
+
       private
 
       def dup_with_value(val)
@@ -52,7 +60,9 @@ module FortuneTeller
       end
 
       def adjusted_for(year, growth_rates)
-        if year <= @start_date.year
+        if initial_value.zero?
+          0
+        elsif year <= @start_date.year
           @int
         else
           growth_rates.cumulative(@growth_key, @start_date.year, year) * @int

@@ -12,6 +12,14 @@ module FortuneTeller
         from.next_month.change(day: 1)
       end
 
+      def gen_transforms(simulator:)
+        (start_month(simulator)..12)
+          .map{ |i| gen_transform(i) }
+          .delete_if(&:nil?)
+      end
+
+      private 
+      
       def start_month(simulator, day=1)
         beginning = simulator.beginning 
         if @year==beginning.year          

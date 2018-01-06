@@ -5,13 +5,11 @@ module FortuneTeller
         @data = data
         super(holder: holder, year: year)
       end
-
-      def gen_transforms(simulator:)
-        (start_month(simulator)..12)
-          .map{ |i| gen_transform(i) }
-          .delete_if(&:nil?)
-      end
       
+      def take_home_pay(month:)
+        (@data[(month-1)].nil? ? Utils::InflatingInt.zero : @data[(month-1)])
+      end
+
       private
       
       def gen_transform(month)

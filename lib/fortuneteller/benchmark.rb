@@ -8,8 +8,8 @@ module FortuneTeller
       {
         growth_rates: {
           # these should match the holdings your retirement accounts have:
-          stocks:       [1.05],
-          bonds:        [1.05],
+          stocks:       [1.06],
+          bonds:        [1.04],
 
           # these are reserved parameters for the simulation:
           wage_growth:  [1.00],
@@ -82,7 +82,7 @@ module FortuneTeller
         plan.beginning.set(
           type: :_401k,
           balances: {
-            stocks: 200_000_00
+            stocks: 200_000_00,
           }
         )
       end

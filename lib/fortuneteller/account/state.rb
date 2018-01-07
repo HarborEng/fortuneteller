@@ -26,21 +26,38 @@ module FortuneTeller
 
       def debit(amount:, holding: :cash, on:, pass_time: true)
         pass_time(to: on) if pass_time
-        @balances[holding] -= amount
 
-        if @balances[holding] < 0 # waterfall debit across other accounts
-          @balances.sort_by(&:last).each do |other_holding, balance|
-            next if holding == other_holding
+        before_balance = balance
 
-            if -@balances[holding] <= balance
-              @balances[other_holding] += @balances[holding]
-              @balances[holding] = 0
-            else
-              @balances[holding] += @balances[other_holding]
-              @balances[other_holding] = 0
-            end
+        if(before_balance <= amount)
+          @balances.transform_values! { |a| 0 }
+        else
+          # Even withdrawal
+          @balances.transform_values! { |a| (a - ((a.to_f/before_balance)*amount).round) }
+
+          #maybe we should ignore the rounding errors
+          after_balance = balance
+          diff = (before_balance - amount - after_balance)
+          if diff != 0
+            @balances[@balances.keys.first] += diff
           end
         end
+
+        # @balances[holding] -= amount
+
+        # if @balances[holding] < 0 # waterfall debit across other accounts
+        #   @balances.sort_by(&:last).each do |other_holding, balance|
+        #     next if holding == other_holding
+
+        #     if -@balances[holding] <= balance
+        #       @balances[other_holding] += @balances[holding]
+        #       @balances[holding] = 0
+        #     else
+        #       @balances[holding] += @balances[other_holding]
+        #       @balances[other_holding] = 0
+        #     end
+        #   end
+        # end
       end
 
       def pass_time(to:)

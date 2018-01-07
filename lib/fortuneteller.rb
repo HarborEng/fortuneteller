@@ -11,6 +11,7 @@ require 'fortuneteller/person'
 require 'fortuneteller/state'
 require 'fortuneteller/cashflow'
 require 'fortuneteller/growth_rate_set'
+require 'fortuneteller/allocation_strategy'
 
 require 'fortuneteller/errors/plan_setup_error'
 

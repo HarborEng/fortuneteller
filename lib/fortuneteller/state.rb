@@ -16,14 +16,12 @@ module FortuneTeller
       }
     end
 
-    def initialize(start_date:, growth_rates:, previous: nil)
+    def initialize(start_date:, growth_rates:, allocation_strategy:)
       @from = start_date.dup
       @date = start_date
       @growth_rates = growth_rates
+      @allocation_strategy = allocation_strategy
       @accounts = {}
-      unless previous.nil?
-        previous.accounts.each { |k, a| @accounts[k] = a.dup }
-      end
       @cashflow = {
         primary: Array.new(12) { self.class.cashflow_base },
         partner: Array.new(12) { self.class.cashflow_base }
@@ -32,7 +30,23 @@ module FortuneTeller
     end
 
     def add_account(key:, account:, growth_rates:)
-      @accounts[key] = account.initial_state(start_date: @date, growth_rates: @growth_rates)
+      a = account.initial_state(start_date: @date, growth_rates: @growth_rates)
+      unless @allocation_strategy.nil?
+        a.balances = @allocation_strategy.reallocate(a.balances, @date.year)
+      end
+      @accounts[key] = a
+    end
+
+    def add_previous_accounts(previous)
+      unless previous.nil?
+        previous.accounts.each do |k, a|
+          a = a.dup
+          unless @allocation_strategy.nil?
+            a.balances = @allocation_strategy.reallocate(a.balances, @date.year)
+          end          
+          @accounts[k] = a
+        end
+      end
     end
 
     def pass_time(to:)
@@ -70,11 +84,13 @@ module FortuneTeller
     end
 
     def init_next
-      self.class.new(
+      s = self.class.new(
         start_date: @date,
         growth_rates: @growth_rates,
-        previous: self
+        allocation_strategy: @allocation_strategy,
       )
+      s.add_previous_accounts(self)
+      s
     end
 
     def merged_cashflow(holder:)
@@ -130,7 +146,6 @@ module FortuneTeller
 
     def generate_ss_cashflow(date, income)
       benefit = @inflating_int_cache.calculate(income[:ss], date)
-
       {
         pretax_gross: benefit,
         pretax_ss: benefit,

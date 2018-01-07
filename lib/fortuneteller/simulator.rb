@@ -30,6 +30,7 @@ module FortuneTeller
     end
 
     def initialize(beginning, end_age=100)
+      @allocation_strategy = nil
       @beginning = beginning
       @end_age = end_age
       @available_keys = ('AA'..'ZZ').to_a
@@ -70,6 +71,14 @@ module FortuneTeller
       puts states.as_json if ENV['VERBOSE']
 
       states
+    end
+
+    def add_allocation_strategy(allocations:)
+      raise setup_error(:allocation_exists) unless @allocation_strategy.nil?
+      @allocation_strategy = FortuneTeller::AllocationStrategy.new(
+        allocations: allocations,
+        start_year:  start_year
+      )
     end
 
     def start_year
@@ -158,7 +167,11 @@ module FortuneTeller
     end
 
     def initial_state(growth_rates)
-      s = FortuneTeller::State.new(start_date: @beginning, growth_rates: growth_rates)
+      s = FortuneTeller::State.new(
+        start_date: @beginning, 
+        growth_rates: growth_rates, 
+        allocation_strategy: @allocation_strategy
+      )
       accounts.each { |k, a| s.add_account(key: k, account: a, growth_rates: growth_rates) }
       s
     end
@@ -173,10 +186,14 @@ module FortuneTeller
 
     def validate_plan!
       if no_primary? and no_partner?
-        raise FortuneTeller::PlanSetupError.new(:no_person)
+        raise setup_error(:no_person)
       elsif no_primary?
-        raise FortuneTeller::PlanSetupError.new(:no_primary_person)
+        raise setup_error(:no_primary_person)
       end
+    end
+
+    def setup_error(token)
+      FortuneTeller::PlanSetupError.new(token)
     end
   end
 end

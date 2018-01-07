@@ -81,6 +81,19 @@ module FortuneTeller
       @cashflow[holder].reduce({}, Cashflow.method(:merge!))
     end
 
+    def inflation_adjusted_income(target_year)
+      current_income = cashflow.values.flatten.map do |cashflow|
+        cashflow[:pretax_adjusted]
+      end.sum
+
+      inflation_factor = @growth_rates.cumulative(:inflation, target_year, @from.year)
+      (current_income.to_f / inflation_factor).floor
+    end
+
+    def asset_balance
+      accounts.values.map(&:balance).sum
+    end
+
     def as_json(_options = nil)
       {
         date: @date,

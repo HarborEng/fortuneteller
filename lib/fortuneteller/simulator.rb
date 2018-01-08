@@ -191,7 +191,7 @@ module FortuneTeller
         accounts: accounts.transform_values do |a| 
           {
             date: @beginning,
-            balances: a.plan.to_reader.on(@beginning).balances
+            balances: a.plan.to_reader.on(@beginning).balances.dup
           }
         end
       }

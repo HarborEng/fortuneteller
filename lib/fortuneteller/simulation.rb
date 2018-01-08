@@ -137,10 +137,9 @@ module FortuneTeller
       allocation = @allocation_strategy.read_allocation(@current_year)
       return if allocation.nil?
       @account_keys.each do |k|
-        total = balance(key: k)
+        total = balance(key: k).to_f
         re = allocation.each_pair.map{|i| [i[0], (total*i[1]/10000).round] }.to_h
         re.default = 0
-        puts "REALLOCATING #{k} TO #{re}"
         @state[:accounts][k][:balances] = re
       end  
     end

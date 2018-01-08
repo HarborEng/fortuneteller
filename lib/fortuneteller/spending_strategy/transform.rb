@@ -6,42 +6,14 @@ module FortuneTeller
       attr_reader :withdrawal
       def initialize(holder:, date:, amount:, take_homes:)
         @amount = amount
-        @take_homes = take_homes
         super(holder: holder, date: date)
       end
 
-      def apply_to(state)
-        withdrawn = 0
-        desired_withdrawal = state.inflating_int_cache.calculate(@amount, @date) - @take_homes.sum{|t| state.inflating_int_cache.calculate(t, @date) }
-        state.accounts.each do |k, a|
-          next if a.balance.zero?
-
-          a.pass_time(to: @date)
-          withdrawal = [a.balance, (desired_withdrawal - withdrawn)].min
-          next if withdrawal.zero?
-
-          make_withdrawal(state, a.account_ref.holder, k, withdrawal)
-          withdrawn += withdrawal
-          break if withdrawn == desired_withdrawal
-        end        
-      end
-
       def apply_to!(sim:)
-        withdrawn = 0
-        desired_withdrawal = sim.inflate(amount: @amount, date: @date) - @take_homes.sum{|t| sim.inflate(amount: t, date: @date) }
+        desired_withdrawal = sim.inflate(amount: @amount, date: @date) - sim.guaranteed_take_home(date.year, date.month)
         sim.debit(amount: desired_withdrawal, date: date)
       end
 
-      private
-
-      def make_withdrawal(state, holder, account, amount)
-        state.apply_pretax_savings_withdrawal(
-          date: @date,
-          holder: holder,
-          source: account,
-          amount: amount
-        )
-      end
     end
   end
 end

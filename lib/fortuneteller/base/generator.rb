@@ -6,6 +6,10 @@ module FortuneTeller
         @year = year
       end
 
+      def inspect
+        self.class
+      end
+
       # This avoids the time calculations involved in Date#beginning_of_month
       # for a slight speedup.
       def next_month(from)
@@ -18,8 +22,20 @@ module FortuneTeller
           .delete_if(&:nil?)
       end
 
-      private 
+      def gen_cashflows(simulator:)
+        Array.new(12).map.with_index{|a, i| gen_cashflow(i)}
+      end
+
+      private
+
+      def gen_transform(month)
+        nil
+      end
       
+      def gen_cashflow(month)
+        nil
+      end
+
       def start_month(simulator, day=1)
         beginning = simulator.beginning 
         if @year==beginning.year          

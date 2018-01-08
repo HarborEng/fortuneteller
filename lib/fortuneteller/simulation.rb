@@ -5,14 +5,43 @@ module FortuneTeller
       result
     end
 
-    def initialize(initial_state:, growth_rates:, transforms:, allocation_strategy:)
+    def initialize(initial_state:, growth_rates:, transforms:, guaranteed_cashflows:, allocation_strategy:)
       @state = initial_state
       @account_keys = @state[:accounts].keys
       @start_year = initial_state[:date].year
       @growth_rates = growth_rates
       @all_transforms = transforms
-      @allocation_strategy = allocation_strategy
+      @allocation_strategy = allocation_strategy      
       @inflating_int_cache = Utils::InflatingIntCache.new(growth_rates)
+      @guaranteed_cashflows = resolve_cashflows(guaranteed_cashflows)
+    end
+
+    def resolve_cashflows(guaranteed_cashflows)
+      guaranteed_cashflows.map.with_index.each do |months, year_index|
+        date = Date.new((@start_year+year_index), 1, 1)
+        months.map do |month|
+          if month.length == 0 
+            Hash.new(0) 
+          else
+            month
+              .map do |cashflow|
+                cashflow.transform_values{ |a| inflate(amount: a, date: date) }
+              end
+              .reduce({}){|l,r| l.merge!(r){ |_k, a, b| (a + b) } }
+          end
+        end
+      end
+    end
+
+    def guaranteed_take_home(year, month)
+      cf = @guaranteed_cashflows[(year-@start_year)][(month-1)]
+      w2 = ((cf[:pretax_w2].nil? ? 0 : cf[:pretax_w2])*0.7).round
+      ss = (cf[:pretax_ss].nil? ? 0 : cf[:pretax_ss])
+      (w2+ss)
+    end
+
+    def read_cashflow(year, month, line_item)
+      @guaranteed_cashflows[(year-@start_year)][(month-1)][line_item]
     end
 
     def run

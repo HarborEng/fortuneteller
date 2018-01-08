@@ -20,6 +20,10 @@ module FortuneTeller
         gen_transforms(from: from, to: to, simulator: simulator)
       end
 
+      def inspect
+        self.class
+      end
+
       private
 
       # This avoids the time calculations involved in Date#beginning_of_month

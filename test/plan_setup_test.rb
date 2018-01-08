@@ -29,7 +29,7 @@ class UserTest < MiniTest::Test
     end
   end
 
-  def test_plan_finalized
+  def atest_plan_finalized
     sim = FortuneTeller::Benchmark.create_sim
 
     sim.simulate(growth_rates: growth_rates)

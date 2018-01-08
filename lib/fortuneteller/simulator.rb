@@ -52,7 +52,7 @@ module FortuneTeller
     end
 
     def take_homes_without_withdrawals(year, month)
-      plan_components_without_withdrawals
+      guaranteed_cashflow_components
         .flat_map(&:values)
         .map do |c|
           c.generators[year].take_home_pay(month: month)
@@ -60,14 +60,11 @@ module FortuneTeller
     end
 
     def all_transforms
-      transforms = []
-      current = @beginning
-      while current != @end_date
-        next_year = first_day_of_year((current.year + 1))
-        transforms << plan_transforms(from: current, to: next_year)
-        current = next_year
-      end   
-      transforms   
+      (start_year..end_year).map { |year| year_transforms(year) }
+    end
+
+    def all_guaranteed_cashflows
+      (start_year..end_year).map { |year| year_guaranteed_cashflows(year) }
     end
 
     def simulate(growth_rates:)
@@ -78,18 +75,9 @@ module FortuneTeller
         growth_rates: growth_rates,
         initial_state: initial_state_json,
         transforms: all_transforms,
+        guaranteed_cashflows: all_guaranteed_cashflows,
         allocation_strategy: @allocation_strategy
       )
-
-      # growth_rates = GrowthRateSet.new(growth_rates, start_year: @beginning.year)
-      # states       = [initial_state(growth_rates)]
-
-      # while states.last.date != @end_date
-      #   states << simulate_next_state(states.last)
-      # end
-      # puts states.as_json if ENV['VERBOSE']
-
-      # states
     end
 
     def add_allocation_strategy(allocations:)
@@ -152,11 +140,34 @@ module FortuneTeller
       state
     end
 
-    def plan_components_without_withdrawals
-      @plan_components_without_withdrawals ||=
+    def year_guaranteed_cashflows(year)
+      @cached_cashflows ||= {}
+      @cached_cashflows[year] ||= begin 
+        guaranteed_cashflow_components
+          .flat_map(&:values)
+          .map{ |c| c.generators[year].gen_cashflows(simulator: self) }
+          .transpose
+          .map { |month| month.delete_if(&:nil?) }
+      end
+    end
+
+    def guaranteed_cashflow_components
+      @guaranteed_cashflow_components ||=
         %i[job social_security].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
+    end
+
+    def year_transforms(year)
+      @cached_transforms ||= {}
+      @cached_transforms[year] ||= begin     
+        plan_components
+          .flat_map(&:values)
+          .flat_map do |component|
+            component.generators[year].gen_transforms(simulator: self)
+          end
+          .sort
+      end
     end
 
     def plan_components
@@ -167,26 +178,7 @@ module FortuneTeller
         end
     end
 
-    def transforming_components
-      @transforming_components ||=
-        # Keep spending strategy last
-        %i[job spending_strategy].map do |object_type|
-          send(object_type.to_s.pluralize.to_sym)
-        end
-    end
 
-    def plan_transforms(from:, to:)
-      cache_key = [from, to]
-      @cached_transforms ||= {}
-      @cached_transforms[cache_key] ||= begin     
-        plan_components
-          .flat_map(&:values)
-          .flat_map do |component|
-            component.generators[from.year].gen_transforms(simulator: self)
-          end
-          .sort
-      end
-    end
 
     def youngest_birthday
       return @primary.birthday if no_partner?

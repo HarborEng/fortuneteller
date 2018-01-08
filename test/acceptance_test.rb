@@ -112,7 +112,13 @@ class AcceptanceTest < Minitest::Test
 
   def test_expected_results
     result = Timecop.freeze(Date.parse('2017-12-14')) do
+      puts "EXPECTED"
+      puts " "
       FortuneTeller::Benchmark.run
+      puts " "
+      puts "EXPECTED END"
+      puts " "
+
     end
 
     result.zip(expected_no_reallocation) do |actual, expected|
@@ -120,7 +126,7 @@ class AcceptanceTest < Minitest::Test
     end
   end
 
-  def test_expected_results_nil_allocation
+  def atest_expected_results_nil_allocation
     result = Timecop.freeze(Date.parse('2017-12-14')) do
       sim = FortuneTeller::Benchmark.create_sim
       sim.add_allocation_strategy(allocations: [nil])
@@ -133,7 +139,7 @@ class AcceptanceTest < Minitest::Test
     end
   end
 
-  def test_expected_results_5050_allocation
+  def atest_expected_results_5050_allocation
     result = Timecop.freeze(Date.parse('2017-12-14')) do
       sim = FortuneTeller::Benchmark.create_sim
       sim.add_allocation_strategy(allocations: [{stocks: 5000, bonds: 5000}])
@@ -146,7 +152,7 @@ class AcceptanceTest < Minitest::Test
     end
   end
 
-  def test_state_independence
+  def atest_state_independence
     # create two sims, run one first through a set of crazy params, and
     # then both through the same params. the results should match up.
     sim1 = FortuneTeller::Benchmark.create_sim

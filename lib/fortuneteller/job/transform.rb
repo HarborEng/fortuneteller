@@ -18,6 +18,66 @@ module FortuneTeller
           account_credits: @account_credits
         )
       end
+
+      def apply_to!(sim:)
+        wages, matched, saved = income.values_at(:wages, :matched, :saved).map do |i|
+          sim.inflate(amount: i, date: date)
+        end
+
+        # Will later calculate full years cashflow before withdrawals at start of years sim
+        c = {
+          pretax_gross: (wages + matched),
+          pretax_salary: wages,
+          pretax_savings: saved,
+          pretax_savings_matched: matched,
+          pretax_adjusted: (wages - saved)
+        }
+        c[:tax_withholding] = (c[:pretax_adjusted]*0.3).round
+        c[:take_home_pay] = c[:pretax_adjusted] - c[:tax_withholding]
+        c
+
+        sim.apply_cashflow(cashflow: c)
+
+        @account_credits.each do |k, allocations|
+          allocations.each do |holding, amount|
+            grown_amount = sim.inflate(amount: amount, date: date)
+            sim.credit_account(key: k, holding: holding, date: date, amount: grown_amount)
+          end
+        end
+      end
+
+      def apply_w2_income(date:, holder:, income:, account_credits:)
+        c = generate_w2_cashflow(date, income)
+        apply_cashflow(date: date, holder: holder, cashflow: c)
+        account_credits.each do |k, allocations|
+          allocations.each do |holding, amount|
+            grown_amount = @inflating_int_cache.calculate(amount, date)
+            @accounts[k].credit(amount: grown_amount, on: date, holding: holding)
+          end
+        end
+      end
+
+      def generate_w2_cashflow(date, income)
+        wages, matched, saved = income.values_at(:wages, :matched, :saved).map do |i|
+          @inflating_int_cache.calculate(i, date)
+        end
+
+        c = {
+          pretax_gross: (wages + matched),
+          pretax_salary: wages,
+          pretax_savings: saved,
+          pretax_savings_matched: matched,
+          pretax_adjusted: (wages - saved)
+        }
+        c[:tax_withholding] = calculate_w2_withholding(
+          date: date,
+          adjusted_income: c[:pretax_adjusted],
+          pay_period: income[:pay_period]
+        )
+        c[:take_home_pay] = c[:pretax_adjusted] - c[:tax_withholding]
+        c
+      end
+
     end
   end
 end

@@ -14,6 +14,10 @@ module FortuneTeller
           income: {ss: @benefit},
         )
       end
+
+      def apply_to!(sim:)
+        
+      end
     end
   end
 end

@@ -4,8 +4,11 @@ module FortuneTeller
 
     def initialize(growth_rates, start_year:)
       @growth_rates = growth_rates
+      @keys = growth_rates.keys
       @start_year = start_year
       @daily_cache = {}
+      @daily_all_cache = {}
+      @annually_all_cache = {}
       @cumulative_cache = Hash.new do |h, key|
         h[key] = Hash.new do |h2, from_year|
           h2[from_year] = {}
@@ -31,6 +34,18 @@ module FortuneTeller
 
     def daily(key, year)
       @daily_cache[[key, year]] ||= annually(key, year) ** (1/365.00)
+    end
+
+    def annually_all(year)
+      @keys.map {|k| [k, annually(k, year)]}.to_h
+    end
+
+    def daily_all(year)
+      annually_all(year).transform_values {|a| (a ** (1/365.0))}
+    end
+
+    def cumulative_all(year)
+      @keys.map {|k| [k, cumulative(k, @start_year, year)]}.to_h
     end
 
     def hash_key(key)

@@ -7,6 +7,7 @@ require 'fortuneteller/version'
 require 'fortuneteller/benchmark'
 
 require 'fortuneteller/simulator'
+require 'fortuneteller/simulation'
 require 'fortuneteller/person'
 require 'fortuneteller/state'
 require 'fortuneteller/cashflow'

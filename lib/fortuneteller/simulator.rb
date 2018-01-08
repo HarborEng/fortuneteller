@@ -59,18 +59,37 @@ module FortuneTeller
         end
     end
 
+    def all_transforms
+      transforms = []
+      current = @beginning
+      while current != @end_date
+        next_year = first_day_of_year((current.year + 1))
+        transforms << plan_transforms(from: current, to: next_year)
+        current = next_year
+      end   
+      transforms   
+    end
+
     def simulate(growth_rates:)
       finalize_plan! unless @finalized
-
       growth_rates = GrowthRateSet.new(growth_rates, start_year: @beginning.year)
-      states       = [initial_state(growth_rates)]
 
-      while states.last.date != @end_date
-        states << simulate_next_state(states.last)
-      end
-      puts states.as_json if ENV['VERBOSE']
+      FortuneTeller::Simulation.run(
+        growth_rates: growth_rates,
+        initial_state: initial_state_json,
+        transforms: all_transforms,
+        allocation_strategy: nil
+      )
 
-      states
+      # growth_rates = GrowthRateSet.new(growth_rates, start_year: @beginning.year)
+      # states       = [initial_state(growth_rates)]
+
+      # while states.last.date != @end_date
+      #   states << simulate_next_state(states.last)
+      # end
+      # puts states.as_json if ENV['VERBOSE']
+
+      # states
     end
 
     def add_allocation_strategy(allocations:)
@@ -164,6 +183,18 @@ module FortuneTeller
     def youngest_birthday
       return @primary.birthday if no_partner?
       [@primary.birthday, @partner.birthday].min
+    end
+
+    def initial_state_json
+      {
+        date: @beginning,
+        accounts: accounts.transform_values do |a| 
+          {
+            date: @beginning,
+            balances: a.plan.to_reader.on(@beginning).balances
+          }
+        end
+      }
     end
 
     def initial_state(growth_rates)

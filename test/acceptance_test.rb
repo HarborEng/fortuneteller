@@ -112,7 +112,7 @@ class AcceptanceTest < Minitest::Test
 
   def test_expected_results
     result = Timecop.freeze(Date.parse('2017-12-14')) do
-      FortuneTeller::Benchmark.run.as_json
+      FortuneTeller::Benchmark.run
     end
 
     result.zip(expected_no_reallocation) do |actual, expected|
@@ -125,7 +125,7 @@ class AcceptanceTest < Minitest::Test
       sim = FortuneTeller::Benchmark.create_sim
       sim.add_allocation_strategy(allocations: [nil])
       context = FortuneTeller::Benchmark.default_context
-      sim.simulate(**context).as_json
+      sim.simulate(**context)
     end
 
     result.zip(expected_no_reallocation) do |actual, expected|
@@ -138,7 +138,7 @@ class AcceptanceTest < Minitest::Test
       sim = FortuneTeller::Benchmark.create_sim
       sim.add_allocation_strategy(allocations: [{stocks: 5000, bonds: 5000}])
       context = FortuneTeller::Benchmark.default_context
-      sim.simulate(**context).as_json
+      sim.simulate(**context)
     end
 
     result.zip(expected_5050_reallocation) do |actual, expected|

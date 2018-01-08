@@ -54,6 +54,12 @@ module FortuneTeller
       @accounts.each_value { |a| a.pass_time(to: to) }
     end
 
+    # state.apply_pretax_savings_withdrawal(
+    #   date: @date,
+    #   holder: holder,
+    #   source: account,
+    #   amount: amount
+    # )
     def apply_pretax_savings_withdrawal(date:, holder:, amount:, source:)
       @accounts[source].debit(amount: amount, on: date, pass_time: false)
       c = {

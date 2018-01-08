@@ -10,6 +10,9 @@ module FortuneTeller
       def <=>(other)
         date.compare_without_coercion(other.date)
       end
+
+      def apply_to!(sim:)
+      end
     end
   end
 end

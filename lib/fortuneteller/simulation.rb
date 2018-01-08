@@ -42,7 +42,6 @@ module FortuneTeller
       else
         @state[:accounts][key][:balances][holding] += amount
       end
-      puts "#{key} #{date}: Deposit to #{@state[:accounts][key][:balances]}"
     end
 
     def debit(amount:, date:)
@@ -101,7 +100,6 @@ module FortuneTeller
     def pass_time_account!(key:, to:)
       account = @state[:accounts][key]
       if account[:date] == to
-        puts "#{key} #{to}: Interest to #{account[:balances]}"
         return
       end
       days = (to - account[:date]).to_i
@@ -109,7 +107,6 @@ module FortuneTeller
         account[:balances][h] = (v*(@daily_growth_rates[h]**days)).round
       end
       account[:date] = to
-      puts "#{key} #{to}: Interest to #{account[:balances]}"
     end
 
     def balance(key:)
@@ -132,7 +129,6 @@ module FortuneTeller
       if diff != 0
         balances[balances.keys.first] += diff
       end
-      puts "#{key} #{date}: Withdrawal to #{@state[:accounts][key][:balances]}"
     end
   end
 end

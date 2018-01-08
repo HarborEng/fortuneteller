@@ -29,9 +29,6 @@ module FortuneTeller
       def apply_to!(sim:)
         withdrawn = 0
         desired_withdrawal = sim.inflate(amount: @amount, date: @date) - @take_homes.sum{|t| sim.inflate(amount: t, date: @date) }
-        puts "DESIRED WITHDRAWAL: #{desired_withdrawal}"
-        puts "AMOUNT #{sim.inflate(amount: @amount, date: @date)}"
-        puts "TAKE HOME #{(@take_homes.sum{|t| sim.inflate(amount: t, date: @date) })}"
         sim.debit(amount: desired_withdrawal, date: date)
       end
 

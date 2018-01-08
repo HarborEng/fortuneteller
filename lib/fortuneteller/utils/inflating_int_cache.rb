@@ -8,8 +8,7 @@ module FortuneTeller
       end
 
       def calculate(int, date)
-        # puts "CACHE CALC #{date} #{int.initial_value}"
-        # @cache[int.growth_key][int.initial_value] ||=
+        @cache[int.growth_key][[date.year, int.initial_value]] ||=
           int.on(date, growth_rates: @growth_rates)
       end
     end

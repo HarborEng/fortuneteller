@@ -65,6 +65,8 @@ module FortuneTeller
         elsif year <= @start_date.year
           @int
         else
+          puts "ADJUSTING FOR #{year}"
+          puts "GROWTH RATES #{growth_rates.cumulative(@growth_key, @start_date.year, year)}"
           growth_rates.cumulative(@growth_key, @start_date.year, year) * @int
         end
       end

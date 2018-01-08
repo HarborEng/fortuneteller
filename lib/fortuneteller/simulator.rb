@@ -78,7 +78,7 @@ module FortuneTeller
         growth_rates: growth_rates,
         initial_state: initial_state_json,
         transforms: all_transforms,
-        allocation_strategy: nil
+        allocation_strategy: @allocation_strategy
       )
 
       # growth_rates = GrowthRateSet.new(growth_rates, start_year: @beginning.year)
@@ -163,6 +163,14 @@ module FortuneTeller
       @plan_components ||=
         # Keep spending strategy last
         %i[job social_security spending_strategy].map do |object_type|
+          send(object_type.to_s.pluralize.to_sym)
+        end
+    end
+
+    def transforming_components
+      @transforming_components ||=
+        # Keep spending strategy last
+        %i[job spending_strategy].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
     end

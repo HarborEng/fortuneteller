@@ -20,8 +20,9 @@ module FortuneTeller
       result[0] = posterize
       @all_transforms.each_with_index do |transforms, i|
         @current_year = @start_year+i
+        reallocate!
         update_daily_growth!
-        reset_cashflow!
+        # reset_cashflow!
         transforms.each  do |t| 
           t.apply_to!(sim: self)
         end
@@ -32,7 +33,7 @@ module FortuneTeller
     end
 
     def apply_cashflow(cashflow:)
-      @state[:cashflow].merge!(cashflow) { |_k, a, b| (a + b) }
+      # @state[:cashflow].merge!(cashflow) { |_k, a, b| (a + b) }
     end
 
     def credit_account(key:, amount:, date:, holding: nil)
@@ -129,6 +130,19 @@ module FortuneTeller
       if diff != 0
         balances[balances.keys.first] += diff
       end
+    end
+
+    def reallocate!
+      return if @allocation_strategy.nil?
+      allocation = @allocation_strategy.read_allocation(@current_year)
+      return if allocation.nil?
+      @account_keys.each do |k|
+        total = balance(key: k)
+        re = allocation.each_pair.map{|i| [i[0], (total*i[1]/10000).round] }.to_h
+        re.default = 0
+        puts "REALLOCATING #{k} TO #{re}"
+        @state[:accounts][k][:balances] = re
+      end  
     end
   end
 end

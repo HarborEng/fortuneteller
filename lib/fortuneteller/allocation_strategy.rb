@@ -15,9 +15,6 @@ module FortuneTeller
 
     def reallocate(current, year)
       allocation = read_allocation(year)
-      if allocation.nil?
-        return current
-      end
       return current if allocation.nil?
       total = current.values.sum.to_f
       re = allocation.each_pair.map{|i| [i[0], (total*i[1]/10000).round] }.to_h

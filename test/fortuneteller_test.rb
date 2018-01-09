@@ -67,17 +67,14 @@ class FortuneTellerTest < Minitest::Test
       )
     end
 
-    state = account_component.initial_state(start_date: Date.today, growth_rates: growth_rates)
+    state = sim.send(:initial_state)
 
-    assert_equal(state.balances,
+    assert_equal(state[:accounts].values.first[:balances],
       {
         stocks: 300_000_00,
         bonds:  200_000_00
       }
     )
-
-    state.credit(amount: 1_000_00, holding: :stocks, on: Date.today)
-    assert_equal state.balances[:stocks], 301_000_00
   end
 
   def real_estate

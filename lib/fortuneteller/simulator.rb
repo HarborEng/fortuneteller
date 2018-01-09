@@ -52,11 +52,11 @@ module FortuneTeller
     end
 
     def all_transforms
-      years.map { |year| year_transforms(year) }
+      @all_transforms ||= years.map { |year| year_transforms(year) }
     end
 
     def all_guaranteed_cashflows
-      years.map { |year| year_guaranteed_cashflows(year) }
+      @all_guaranteed_cashflows ||= years.map { |year| year_guaranteed_cashflows(year) }
     end
 
     def simulate(growth_rates:)
@@ -103,24 +103,18 @@ module FortuneTeller
       #finalize end_date
       @end_year = youngest_birthday.year + @end_age
 
-      plan_components.each do |component_types|
-        component_types.values.each do |c|
-          c.build_generators(self)
-        end
+      plan_components.each do |c|
+        c.build_generators(self)
       end
 
       @finalized = true
     end
 
     def year_guaranteed_cashflows(year)
-      @cached_cashflows ||= {}
-      @cached_cashflows[year] ||= begin 
-        guaranteed_cashflow_components
-          .flat_map(&:values)
-          .map{ |c| c.generators[year].gen_cashflows(simulator: self) }
-          .transpose
-          .map { |month| month.delete_if(&:nil?) }
-      end
+      guaranteed_cashflow_components
+        .map{ |c| c.generators[year].gen_cashflows }
+        .transpose
+        .map { |month| month.delete_if(&:nil?) }
     end
 
     def guaranteed_cashflow_components
@@ -128,18 +122,15 @@ module FortuneTeller
         %i[job social_security].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
+        .flat_map(&:values)
     end
 
     def year_transforms(year)
-      @cached_transforms ||= {}
-      @cached_transforms[year] ||= begin     
-        plan_components
-          .flat_map(&:values)
-          .flat_map do |component|
-            component.generators[year].gen_transforms(simulator: self)
-          end
-          .sort
-      end
+      plan_components
+        .flat_map do |component|
+          component.generators[year].gen_transforms
+        end
+        .sort
     end
 
     def plan_components
@@ -147,6 +138,7 @@ module FortuneTeller
         %i[job social_security spending_strategy].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
+        .flat_map(&:values)
     end
 
     def youngest_birthday

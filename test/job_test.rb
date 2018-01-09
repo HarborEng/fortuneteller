@@ -2,9 +2,9 @@ require 'test_helper'
 
 class JobTest < MiniTest::Test
   def test_wage_growth
+
     sim = MiniTest::Mock.new
     sim.expect(:years, (Date.today.year..(Date.today.year+1)))
-    sim.expect(:beginning, Date.today)
 
     growth_rates = FortuneTeller::GrowthRateSet.new(
       { wage_growth: [1.02] }, start_year: Date.today.year
@@ -16,10 +16,10 @@ class JobTest < MiniTest::Test
 
     component.build_generators(sim)
 
-    transforms = component.generators[(Date.today.year+1)].gen_transforms(simulator: sim)
-
-    assert_equal 10200_00, transforms.first.income[:wages].on(Date.today + 1.year, growth_rates: growth_rates)
-
     sim.verify
+
+    cashflows = component.generators[(Date.today.year+1)].gen_cashflows
+
+    assert_equal 10200_00, cashflows.first[:pretax_w2].on_year((Date.today.year + 1), growth_rates: growth_rates)
   end
 end

@@ -12,13 +12,14 @@ module FortuneTeller
         from.next_month.change(day: 1)
       end
 
-      def gen_transforms(simulator:)
-        (start_month_index(simulator)..11)
+      def gen_transforms
+        # (start_month_index(simulator)..11)
+        (0..11)
           .map{ |i| gen_transform(i) }
           .delete_if(&:nil?)
       end
 
-      def gen_cashflows(simulator:)
+      def gen_cashflows
         Array.new(12).map.with_index{|a, i| gen_cashflow(i)}
       end
 

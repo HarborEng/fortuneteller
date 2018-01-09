@@ -9,7 +9,6 @@ require 'fortuneteller/benchmark'
 require 'fortuneteller/simulator'
 require 'fortuneteller/simulation'
 require 'fortuneteller/person'
-require 'fortuneteller/cashflow'
 require 'fortuneteller/growth_rate_set'
 require 'fortuneteller/allocation_strategy'
 

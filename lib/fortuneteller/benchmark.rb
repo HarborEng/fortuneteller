@@ -130,6 +130,8 @@ module FortuneTeller
         )
       end
 
+      sim.add_result_serializer FortuneTeller::ResultSerializers::Test
+
       sim
     end
   end

@@ -67,7 +67,8 @@ module FortuneTeller
         initial_state: initial_state,
         transforms: all_transforms,
         guaranteed_cashflows: all_guaranteed_cashflows,
-        allocation_strategy: @allocation_strategy
+        allocation_strategy: @allocation_strategy,
+        result_serializer: @result_serializer
       )
     end
 
@@ -77,6 +78,10 @@ module FortuneTeller
         allocations: allocations,
         start_year:  start_year
       )
+    end
+
+    def add_result_serializer(serializer)
+      @result_serializer = serializer
     end
 
     def start_year
@@ -110,6 +115,8 @@ module FortuneTeller
       @finalized = true
     end
 
+    # Note: there is a potential efficiency boost for couples by merging InflatingInts of the
+    # same key before returning.  That may result in some rounding errors in the tests.
     def year_guaranteed_cashflows(year)
       guaranteed_cashflow_components
         .map{ |c| c.generators[year].gen_cashflows }

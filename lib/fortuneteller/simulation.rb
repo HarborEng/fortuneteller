@@ -12,57 +12,63 @@ module FortuneTeller
       @growth_rates = growth_rates
       @all_transforms = transforms
       @allocation_strategy = allocation_strategy      
+      @cumulative_cache = {}
       @inflating_int_cache = Utils::InflatingIntCache.new(growth_rates)
       @guaranteed_cashflows = resolve_cashflows(guaranteed_cashflows)
     end
 
     def resolve_cashflows(guaranteed_cashflows)
+      @annual_cashflows = Array.new(guaranteed_cashflows.length)
       guaranteed_cashflows.map.with_index.each do |months, year_index|
-        date = Date.new((@start_year+year_index), 1, 1)
-        months.map do |month|
+        year = @start_year+year_index
+        monthly_guaranteed = months.map do |month|
           if month.length == 0 
             Hash.new(0) 
           else
-            month
-              .map do |cashflow|
-                cashflow.transform_values{ |a| inflate(amount: a, date: date) }
-              end
-              .reduce({}){|l,r| l.merge!(r){ |_k, a, b| (a + b) } }
+            reduce_cashflows(
+              month
+                .map do |cashflow|
+                  cashflow.transform_values{ |a| inflate_year(amount: a, year: year) }
+                end
+            )
           end
+        end
+        annual_cashflow = monthly_guaranteed.reduce({}){|l,r| l.merge!(r){ |_k, a, b| (a + b) } }
+        calculate_tax!(annual_cashflow, year_index)
+        @annual_cashflows[year_index] = annual_cashflow
+        monthly_guaranteed.map do |month|
+          month.default = 0
+          (month[:pretax_w2]*annual_cashflow[:w2_rate] + month[:pretax_ss]*annual_cashflow[:ss_rate]).round
         end
       end
     end
 
-    def guaranteed_take_home(year, month)
-      cf = @guaranteed_cashflows[(year-@start_year)][(month-1)]
-      w2 = ((cf[:pretax_w2].nil? ? 0 : cf[:pretax_w2])*0.7).round
-      ss = (cf[:pretax_ss].nil? ? 0 : cf[:pretax_ss])
-      (w2+ss)
+    def calculate_tax!(cashflow, year_index)
+      cashflow.default = 0
+      cashflow[:w2_rate] = 0.7
+      cashflow[:ss_rate] = 1
+      cashflow[:posttax_w2] = (cashflow[:pretax_w2]*cashflow[:w2_rate]).round
+      cashflow[:posttax_ss] = (cashflow[:pretax_ss]*cashflow[:ss_rate]).round
     end
 
-    def read_cashflow(year, month, line_item)
-      @guaranteed_cashflows[(year-@start_year)][(month-1)][line_item]
+    def guaranteed_take_home(year, month)
+      @guaranteed_cashflows[(year-@start_year)][(month-1)]
     end
 
     def run
-      result = Array.new(@all_transforms.length)
-      result[0] = posterize
+      results = Array.new(@all_transforms.length)
+      results[0] = posterize
       @all_transforms.each_with_index do |transforms, i|
         @current_year = @start_year+i
         reallocate!
-        update_daily_growth!
-        # reset_cashflow!
         transforms.each  do |t| 
           t.apply_to!(sim: self)
         end
         pass_time_all!(to: Date.new(@current_year+1, 1, 1))
-        result[(i+1)] = posterize
+        # results[i][:income] = @annual_cashflows[i]
+        results[(i+1)] = posterize
       end
-      result
-    end
-
-    def apply_cashflow(cashflow:)
-      # @state[:cashflow].merge!(cashflow) { |_k, a, b| (a + b) }
+      results
     end
 
     def credit_account(key:, amount:, date:, holding: nil)
@@ -96,29 +102,16 @@ module FortuneTeller
       @inflating_int_cache.calculate(amount, date)
     end
 
+    def inflate_year(amount:, year:)
+      @inflating_int_cache.calculate_year(amount, year)
+    end
+
     private
 
     def posterize
       {
         :date => @state[:date],
         :accounts => @state[:accounts].transform_values{ |a| a[:balances].values.sum }
-      }
-    end
-
-    def update_daily_growth!
-      @daily_growth_rates = @growth_rates.daily_all(@current_year)
-    end
-
-    def reset_cashflow!
-      @state[:cashflow] = {
-        pretax_gross: 0,
-        pretax_salary: 0,
-        pretax_savings_withdrawal: 0,
-        pretax_savings: 0,
-        pretax_savings_matched: 0,
-        pretax_adjusted: 0,
-        tax_withholding: 0,
-        take_home_pay: 0
       }
     end
 
@@ -134,7 +127,7 @@ module FortuneTeller
       end
       days = (to - account[:date]).to_i
       account[:balances].each do |h, v|
-        account[:balances][h] = (v*(@daily_growth_rates[h]**days)).round
+        account[:balances][h] = (v*(@growth_rates.daily(h, @current_year)**days)).round
       end
       account[:date] = to
     end
@@ -159,6 +152,9 @@ module FortuneTeller
       if diff != 0
         balances[balances.keys.first] += diff
       end
+
+      #Update cashflow
+      @annual_cashflows[(date.year-@start_year)][:withdrawal] += amount
     end
 
     def reallocate!
@@ -172,5 +168,10 @@ module FortuneTeller
         @state[:accounts][k][:balances] = re
       end  
     end
+
+    def reduce_cashflows(cashflows)
+      cashflows.reduce({}){|l,r| l.merge!(r){ |_k, a, b| (a + b) } }
+    end
+
   end
 end

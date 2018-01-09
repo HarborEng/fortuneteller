@@ -6,10 +6,6 @@ module FortuneTeller
         @year = year
       end
 
-      def inspect
-        self.class
-      end
-
       # This avoids the time calculations involved in Date#beginning_of_month
       # for a slight speedup.
       def next_month(from)
@@ -17,7 +13,7 @@ module FortuneTeller
       end
 
       def gen_transforms(simulator:)
-        (start_month(simulator)..12)
+        (start_month_index(simulator)..11)
           .map{ |i| gen_transform(i) }
           .delete_if(&:nil?)
       end
@@ -36,12 +32,15 @@ module FortuneTeller
         nil
       end
 
-      def start_month(simulator, day=1)
+      def start_month_index(simulator, day=1)
+        # A little oddity here.  This can return 12, which means the start month
+        # is actually in the following year, which causes gen_transforms to return
+        # an empty array
         beginning = simulator.beginning 
         if @year==beginning.year          
-          return (beginning.day<=day ? beginning.month : (beginning.month+1))
+          return (beginning.day<=day ? (beginning.month-1) : beginning.month)
         else
-          return 1
+          return 0
         end
       end
     end

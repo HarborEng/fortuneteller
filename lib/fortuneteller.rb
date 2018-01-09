@@ -9,7 +9,6 @@ require 'fortuneteller/benchmark'
 require 'fortuneteller/simulator'
 require 'fortuneteller/simulation'
 require 'fortuneteller/person'
-require 'fortuneteller/state'
 require 'fortuneteller/cashflow'
 require 'fortuneteller/growth_rate_set'
 require 'fortuneteller/allocation_strategy'
@@ -35,10 +34,6 @@ require 'fortuneteller/utils/social_security'
   rescue LoadError
   end
 
-  begin
-    require "fortuneteller/#{object_type}/state"
-  rescue LoadError
-  end
 end
 require "fortuneteller/base/plan_reader"
 

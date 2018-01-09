@@ -8,10 +8,10 @@ module FortuneTeller
       
       private
       
-      def gen_transform(month)
-        return nil if @data[(month-1)].nil?
-        date = Date.new(@year, month, 1)
-        self.class.parent::Transform.new(date: date, holder: @holder, **@data[(month-1)])
+      def gen_transform(month_index)
+        return nil if @data[month_index].nil?
+        date = Date.new(@year, (month_index+1), 1)
+        self.class.parent::Transform.new(date: date, holder: @holder, amount: @data[month_index])
       end
     end
   end

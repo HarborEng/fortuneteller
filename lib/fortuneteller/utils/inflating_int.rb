@@ -8,13 +8,18 @@ module FortuneTeller
         @zero ||= new(int: 0, start_date: nil, growth_key: nil).freeze
       end
 
-      attr_reader :start_date, :growth_key
+      attr_reader :start_date, :start_year, :growth_key
 
       def initialize(int:, start_date:, growth_key: :inflation)
         @int = int
         @start_date = start_date
+        @start_year = (start_date.nil? ? nil : start_date.year)
         @growth_key = growth_key
         @inflated_cache = {}
+      end
+
+      def on_year(year, growth_rates:)
+        adjusted_for(year, growth_rates).round
       end
 
       def on(date, growth_rates:)

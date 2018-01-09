@@ -51,26 +51,25 @@ module FortuneTeller
       end.sum.round
     end
 
-    def take_homes_without_withdrawals(year, month)
-      plan_components_without_withdrawals
-        .flat_map(&:values)
-        .map do |c|
-          c.generators[year].take_home_pay(month: month)
-        end
+    def all_transforms
+      @all_transforms ||= years.map { |year| year_transforms(year) }
+    end
+
+    def all_guaranteed_cashflows
+      @all_guaranteed_cashflows ||= years.map { |year| year_guaranteed_cashflows(year) }
     end
 
     def simulate(growth_rates:)
       finalize_plan! unless @finalized
-
       growth_rates = GrowthRateSet.new(growth_rates, start_year: @beginning.year)
-      states       = [initial_state(growth_rates)]
-
-      while states.last.date != @end_date
-        states << simulate_next_state(states.last)
-      end
-      puts states.as_json if ENV['VERBOSE']
-
-      states
+      FortuneTeller::Simulation.run(
+        growth_rates: growth_rates,
+        initial_state: initial_state,
+        transforms: all_transforms,
+        guaranteed_cashflows: all_guaranteed_cashflows,
+        allocation_strategy: @allocation_strategy,
+        result_serializer: @result_serializer
+      )
     end
 
     def add_allocation_strategy(allocations:)
@@ -81,12 +80,16 @@ module FortuneTeller
       )
     end
 
+    def add_result_serializer(serializer)
+      @result_serializer = serializer
+    end
+
     def start_year
       beginning.year
     end
 
     def end_year
-      @end_date.year-1
+      @end_year
     end
 
     def years
@@ -103,62 +106,46 @@ module FortuneTeller
       validate_plan!
 
       #finalize end_date
-      @end_date = first_day_of_year((youngest_birthday.year + @end_age + 1))
+      @end_year = youngest_birthday.year + @end_age
 
-      plan_components.each do |component_types|
-        component_types.values.each do |c|
-          c.build_generators(self)
-        end
+      plan_components.each do |c|
+        c.build_generators(self)
       end
 
       @finalized = true
     end
 
-    def simulate_next_state(last)
-      end_date = first_day_of_year((last.date.year + 1))
-      transforms = plan_transforms(from: last.date, to: end_date)
-      evolve_state(last, transforms, end_date)
+    # Note: there is a potential efficiency boost for couples by merging InflatingInts of the
+    # same key before returning.  That may result in some rounding errors in the tests.
+    def year_guaranteed_cashflows(year)
+      guaranteed_cashflow_components
+        .map{ |c| c.generators[year].gen_cashflows }
+        .transpose
+        .map { |month| month.delete_if(&:nil?) }
     end
 
-    def first_day_of_year(year)
-      Date.new(year, 1, 1)
-    end
-
-    def evolve_state(state, transforms, to)
-      state = state.init_next
-      transforms.each do |t| 
-        t.apply_to(state)
-      end
-      state.pass_time(to: to)
-      state
-    end
-
-    def plan_components_without_withdrawals
-      @plan_components_without_withdrawals ||=
+    def guaranteed_cashflow_components
+      @guaranteed_cashflow_components ||=
         %i[job social_security].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
+        .flat_map(&:values)
+    end
+
+    def year_transforms(year)
+      plan_components
+        .flat_map do |component|
+          component.generators[year].gen_transforms
+        end
+        .sort
     end
 
     def plan_components
       @plan_components ||=
-        # Keep spending strategy last
         %i[job social_security spending_strategy].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
-    end
-
-    def plan_transforms(from:, to:)
-      cache_key = [from, to]
-      @cached_transforms ||= {}
-      @cached_transforms[cache_key] ||= begin     
-        plan_components
-          .flat_map(&:values)
-          .flat_map do |component|
-            component.generators[from.year].gen_transforms(simulator: self)
-          end
-          .sort
-      end
+        .flat_map(&:values)
     end
 
     def youngest_birthday
@@ -166,14 +153,16 @@ module FortuneTeller
       [@primary.birthday, @partner.birthday].min
     end
 
-    def initial_state(growth_rates)
-      s = FortuneTeller::State.new(
-        start_date: @beginning, 
-        growth_rates: growth_rates, 
-        allocation_strategy: @allocation_strategy
-      )
-      accounts.each { |k, a| s.add_account(key: k, account: a, growth_rates: growth_rates) }
-      s
+    def initial_state
+      {
+        date: @beginning,
+        accounts: accounts.transform_values do |a| 
+          {
+            date: @beginning,
+            balances: a.plan.to_reader.on(@beginning).balances.dup
+          }
+        end
+      }
     end
 
     def no_partner?

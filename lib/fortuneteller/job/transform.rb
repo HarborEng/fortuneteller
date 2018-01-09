@@ -4,19 +4,18 @@ module FortuneTeller
     class Transform < FortuneTeller::Base::Transform
       attr_reader :income
 
-      def initialize(income:, account_credits:, **base)
-        @income = income
+      def initialize(account_credits:, **base)
         @account_credits = account_credits
         super(**base)
       end
 
-      def apply_to(state)
-        state.apply_w2_income(
-          date: date,
-          holder: holder,
-          income: @income,
-          account_credits: @account_credits
-        )
+      def apply_to!(sim:)
+        @account_credits.each do |k, allocations|
+          allocations.each do |holding, amount|
+            grown_amount = sim.inflate(amount: amount, date: date)
+            sim.credit_account(key: k, holding: holding, date: date, amount: grown_amount)
+          end
+        end
       end
     end
   end

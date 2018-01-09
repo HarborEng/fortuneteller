@@ -4,6 +4,7 @@ module FortuneTeller
 
     def initialize(growth_rates, start_year:)
       @growth_rates = growth_rates
+      @keys = growth_rates.keys
       @start_year = start_year
       @daily_cache = {}
       @cumulative_cache = Hash.new do |h, key|
@@ -24,7 +25,6 @@ module FortuneTeller
 
     def annually(key, year)
       return 0 unless growth_rates.key?(key)
-
       list = growth_rates[key]
       list[(year - start_year) % list.size]
     end

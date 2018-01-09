@@ -13,13 +13,6 @@ module FortuneTeller
         @generators = {}
       end
 
-      def bounded_gen_transforms(from:, to:, simulator:)
-        return [] if out_of_range?(from: from, to: to)
-        from = tighten_from(from)
-        to = tighten_to(to)
-        gen_transforms(from: from, to: to, simulator: simulator)
-      end
-
       private
 
       # This avoids the time calculations involved in Date#beginning_of_month
@@ -28,21 +21,6 @@ module FortuneTeller
         from.next_month.change(day: 1)
       end
 
-      def out_of_range?(from:, to:)
-        return true if !@start_date.nil? && (to < @start_date)
-        return true if !@end_date.nil? && (from >= @end_date)
-        false
-      end
-
-      def tighten_from(from)
-        return from if @start_date.nil?
-        [from, @start_date].max
-      end
-
-      def tighten_to(to)
-        return to if @end_date.nil?
-        [to, @end_date].min
-      end
     end
   end
 end

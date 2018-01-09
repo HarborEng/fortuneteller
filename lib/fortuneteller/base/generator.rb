@@ -12,20 +12,36 @@ module FortuneTeller
         from.next_month.change(day: 1)
       end
 
-      def gen_transforms(simulator:)
-        (start_month(simulator)..12)
+      def gen_transforms
+        # (start_month_index(simulator)..11)
+        (0..11)
           .map{ |i| gen_transform(i) }
           .delete_if(&:nil?)
       end
 
-      private 
+      def gen_cashflows
+        Array.new(12).map.with_index{|a, i| gen_cashflow(i)}
+      end
+
+      private
+
+      def gen_transform(month)
+        nil
+      end
       
-      def start_month(simulator, day=1)
+      def gen_cashflow(month)
+        nil
+      end
+
+      def start_month_index(simulator, day=1)
+        # A little oddity here.  This can return 12, which means the start month
+        # is actually in the following year, which causes gen_transforms to return
+        # an empty array
         beginning = simulator.beginning 
         if @year==beginning.year          
-          return (beginning.day<=day ? beginning.month : (beginning.month+1))
+          return (beginning.day<=day ? (beginning.month-1) : beginning.month)
         else
-          return 1
+          return 0
         end
       end
     end

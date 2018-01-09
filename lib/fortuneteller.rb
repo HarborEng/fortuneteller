@@ -2,14 +2,14 @@ require 'active_support/core_ext/string/inflections.rb'
 require 'active_support/core_ext/module/introspection.rb'
 require 'active_support/core_ext/date/calculations.rb'
 require 'active_support/core_ext/object/json.rb'
+require 'active_support/core_ext/object/deep_dup.rb'
 
 require 'fortuneteller/version'
 require 'fortuneteller/benchmark'
 
 require 'fortuneteller/simulator'
+require 'fortuneteller/simulation'
 require 'fortuneteller/person'
-require 'fortuneteller/state'
-require 'fortuneteller/cashflow'
 require 'fortuneteller/growth_rate_set'
 require 'fortuneteller/allocation_strategy'
 
@@ -18,6 +18,9 @@ require 'fortuneteller/errors/plan_setup_error'
 require 'fortuneteller/utils/inflating_int'
 require 'fortuneteller/utils/inflating_int_cache'
 require 'fortuneteller/utils/social_security'
+
+require 'fortuneteller/result_serializers/test'
+require 'fortuneteller/result_serializers/monte_carlo'
 
 %i[base account job social_security spending_strategy tax_strategy].each do |object_type|
   require "fortuneteller/#{object_type}/day_plan"
@@ -34,10 +37,6 @@ require 'fortuneteller/utils/social_security'
   rescue LoadError
   end
 
-  begin
-    require "fortuneteller/#{object_type}/state"
-  rescue LoadError
-  end
 end
 require "fortuneteller/base/plan_reader"
 

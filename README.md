@@ -130,7 +130,11 @@ sim.simulate(
     # these are reserved parameters for the simulation:
     wage_growth:  [1.00],
     inflation:    [1.02]
-  }
+  },
+  # this controls the returned output. by default, the test output
+  # returns all data; you can also use the MonteCarlo serializer for
+  # a minimized set.
+  result_serializer: FortuneTeller::ResultSerializers::Test
 )
 ```
 

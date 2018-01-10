@@ -59,7 +59,7 @@ module FortuneTeller
       @all_guaranteed_cashflows ||= years.map { |year| year_guaranteed_cashflows(year) }
     end
 
-    def simulate(growth_rates:)
+    def simulate(growth_rates:, result_serializer: FortuneTeller::ResultSerializers::Test)
       finalize_plan! unless @finalized
       growth_rates = GrowthRateSet.new(growth_rates, start_year: @beginning.year)
       FortuneTeller::Simulation.run(
@@ -68,7 +68,7 @@ module FortuneTeller
         transforms: all_transforms,
         guaranteed_cashflows: all_guaranteed_cashflows,
         allocation_strategy: @allocation_strategy,
-        result_serializer: @result_serializer
+        result_serializer: result_serializer
       )
     end
 
@@ -78,10 +78,6 @@ module FortuneTeller
         allocations: allocations,
         start_year:  start_year
       )
-    end
-
-    def add_result_serializer(serializer)
-      @result_serializer = serializer
     end
 
     def start_year

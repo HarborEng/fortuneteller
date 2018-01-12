@@ -4,6 +4,7 @@ module FortuneTeller
       FortuneTeller::Simulation.new(**options).run
     end
 
+    attr_accessor :account_keys
     def initialize(result_serializer:, initial_state:, growth_rates:, transforms:, guaranteed_cashflows:, allocation_strategy:)
       @state = initial_state
       @account_keys = @state[:accounts].keys
@@ -29,7 +30,11 @@ module FortuneTeller
       )
       @all_transforms.each_with_index do |transforms, year_index|
         @current_year = @start_year+year_index
-        reallocate!
+        @allocation_strategy.reallocate!(
+          sim: self, 
+          year_index: year_index, 
+          accounts: @state[:accounts]
+        )
         transforms.each  do |t| 
           t.apply_to!(sim: self)
         end
@@ -75,6 +80,10 @@ module FortuneTeller
       @inflating_int_cache.calculate_year(amount, year)
     end
 
+    def balance(key:)
+      @state[:accounts][key][:balances].values.sum
+    end
+
     private
 
     def pass_time_all!(to:)
@@ -92,10 +101,6 @@ module FortuneTeller
         account[:balances][h] = (v*(@growth_rates.daily(h, @current_year)**days)).round
       end
       account[:date] = to
-    end
-
-    def balance(key:)
-      @state[:accounts][key][:balances].values.sum
     end
 
     def debit_account(key:, amount:, date:, pass_time: true)
@@ -118,18 +123,6 @@ module FortuneTeller
       #Update cashflow
       @annual_cashflows[(date.year-@start_year)][:withdrawal] += amount
       @annual_cashflows[(date.year-@start_year)][:posttax] += amount
-    end
-
-    def reallocate!
-      return if @allocation_strategy.nil?
-      allocation = @allocation_strategy.read_allocation(@current_year)
-      return if allocation.nil?
-      @account_keys.each do |k|
-        total = balance(key: k).to_f
-        re = allocation.each_pair.map{|i| [i[0], (total*i[1]/10000).round] }.to_h
-        re.default = 0
-        @state[:accounts][k][:balances] = re
-      end  
     end
 
     # Note: This calculation is only dependent on guaranteed_cashflows and growth_rates

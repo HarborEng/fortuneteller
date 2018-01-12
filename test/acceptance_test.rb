@@ -140,6 +140,7 @@ class AcceptanceTest < Minitest::Test
     result = Timecop.freeze(Date.parse('2017-12-14')) do
       sim = FortuneTeller::Benchmark.create_sim
       sim.set_allocation_strategy(:annual, {stocks: [5000], bonds: [5000]})
+      sim.set_withdrawal_strategy(:tax_sequence)
       context = FortuneTeller::Benchmark.default_context
       sim.simulate(**context)
     end

@@ -32,13 +32,13 @@ module FortuneTeller
       end
     end
 
-    STRATEGIES.each do |strategy_type|
-      attr_reader "#{strategy_type}_strategy".to_sym
-      define_method :"set_#{strategy_type}_strategy" do |s, *args|
+    STRATEGIES.each do |strategy|
+      attr_reader "#{strategy}_strategy".to_sym
+      define_method :"set_#{strategy}_strategy" do |s, *args|
         raise FortuneTeller::PlanSetupError.new(:plan_finalized) if @finalized
         instance_variable_set(
-          :"@#{strategy_type}_strategy",
-          "fortune_teller/strategies/#{strategy_type}/#{s}".classify.constantize.new(*args)
+          :"@#{strategy}_strategy",
+          "fortune_teller/strategies/#{strategy}/#{s}".classify.constantize.new(*args)
         )
       end
     end
@@ -52,6 +52,7 @@ module FortuneTeller
         send("#{object_type.to_s.pluralize}=".to_sym, {})
       end
       set_allocation_strategy(:none)
+      set_withdrawal_strategy(:even)
     end
 
     def initial_take_home_pay
@@ -82,6 +83,7 @@ module FortuneTeller
         transforms: all_transforms,
         guaranteed_cashflows: all_guaranteed_cashflows,
         allocation_strategy: @allocation_strategy,
+        withdrawal_strategy: @withdrawal_strategy,
         result_serializer: result_serializer
       )
     end
@@ -163,9 +165,11 @@ module FortuneTeller
       {
         date: @beginning,
         accounts: accounts.transform_values do |a| 
+          r = a.plan.to_reader.on(@beginning)
           {
             date: @beginning,
-            balances: a.plan.to_reader.on(@beginning).balances.dup
+            type: r.type,
+            balances: r.balances.dup
           }
         end
       }

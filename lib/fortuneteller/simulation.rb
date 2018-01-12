@@ -5,13 +5,22 @@ module FortuneTeller
     end
 
     attr_accessor :account_keys
-    def initialize(result_serializer:, initial_state:, growth_rates:, transforms:, guaranteed_cashflows:, allocation_strategy:)
+    def initialize(
+        result_serializer:, 
+        initial_state:, 
+        growth_rates:, 
+        transforms:, 
+        guaranteed_cashflows:, 
+        allocation_strategy:,
+        withdrawal_strategy:
+      )
       @state = initial_state
       @account_keys = @state[:accounts].keys
       @start_year = initial_state[:date].year
       @growth_rates = growth_rates
       @all_transforms = transforms
-      @allocation_strategy = allocation_strategy      
+      @allocation_strategy = allocation_strategy
+      @withdrawal_strategy = withdrawal_strategy
       @cumulative_cache = {}
       @inflating_int_cache = Utils::InflatingIntCache.new(growth_rates)
       @guaranteed_take_homes = resolve_cashflows(guaranteed_cashflows)
@@ -55,21 +64,12 @@ module FortuneTeller
     end
 
     def debit(amount:, date:)
-      debited = 0
-
-      @account_keys.each do |k|
-        bal = balance(key: k)
-
-        next if bal.zero?
-        pass_time_account!(key: k, to: date)
-        
-        account_amount = [balance(key: k), (amount - debited)].min
-        next if account_amount.zero?
-
-        debit_account(key: k, amount: account_amount, date: date, pass_time: false)
-        debited += account_amount
-        break if debited == amount
-      end  
+      @withdrawal_strategy.withdraw!(
+        amount: amount,
+        date: date,
+        sim: self,
+        accounts: @state[:accounts]
+      )
     end
 
     def inflate(amount:, date:)
@@ -82,13 +82,6 @@ module FortuneTeller
 
     def balance(key:)
       @state[:accounts][key][:balances].values.sum
-    end
-
-    private
-
-    def pass_time_all!(to:)
-      @account_keys.each {|k| pass_time_account!(key: k, to: to) }
-      @state[:date] = to
     end
 
     def pass_time_account!(key:, to:)
@@ -124,6 +117,13 @@ module FortuneTeller
       @annual_cashflows[(date.year-@start_year)][:withdrawal] += amount
       @annual_cashflows[(date.year-@start_year)][:posttax] += amount
     end
+
+    def pass_time_all!(to:)
+      @account_keys.each {|k| pass_time_account!(key: k, to: to) }
+      @state[:date] = to
+    end
+
+    private
 
     # Note: This calculation is only dependent on guaranteed_cashflows and growth_rates
     # So, cashflows can be resolved outside of the simulation if it is helpful.

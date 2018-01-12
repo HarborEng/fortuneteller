@@ -63,7 +63,7 @@ module FortuneTeller
         next if bal.zero?
         pass_time_account!(key: k, to: date)
         
-        account_amount = [bal, (amount - debited)].min
+        account_amount = [balance(key: k), (amount - debited)].min
         next if account_amount.zero?
 
         debit_account(key: k, amount: account_amount, date: date, pass_time: false)

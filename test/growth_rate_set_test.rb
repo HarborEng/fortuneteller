@@ -32,6 +32,9 @@ class GrowthRateSetTest < Minitest::Test
     assert_equal 12, set.cumulative(:stocks, 2017, 2022)
 
     assert_equal 3,  set.cumulative(:stocks, 2019, 2020)
+
+    assert_equal 1,  set.cumulative(:unknown, 2017, 2017)
+    assert_equal 1,  set.cumulative(:unknown, 2017, 2022)
   end
 
   def test_daily_growth_rate

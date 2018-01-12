@@ -24,7 +24,7 @@ module FortuneTeller
     end
 
     def annually(key, year)
-      return 0 unless growth_rates.key?(key)
+      return 1 unless growth_rates.key?(key)
       list = growth_rates[key]
       list[(year - start_year) % list.size]
     end

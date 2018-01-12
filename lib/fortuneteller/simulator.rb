@@ -3,8 +3,11 @@ module FortuneTeller
   class Simulator
     OBJECT_TYPES = %i[account job social_security spending_strategy tax_strategy]
     USER_TYPES = %i[primary partner]
+    STRATEGIES = %i[allocation withdrawal]
 
     attr_reader :beginning
+
+    attr_accessor :allocation_strategy, :withdrawal_strategy
 
     USER_TYPES.each do |user_type|
       attr_reader user_type
@@ -29,8 +32,18 @@ module FortuneTeller
       end
     end
 
+    STRATEGIES.each do |strategy_type|
+      attr_reader "#{strategy_type}_strategy".to_sym
+      define_method :"set_#{strategy_type}_strategy" do |s, *args|
+        raise FortuneTeller::PlanSetupError.new(:plan_finalized) if @finalized
+        instance_variable_set(
+          :"@#{strategy_type}_strategy",
+          "fortune_teller/strategies/#{strategy_type}/#{s}".classify.constantize.new(*args)
+        )
+      end
+    end
+
     def initialize(beginning, end_age=100)
-      @allocation_strategy = nil
       @beginning = beginning
       @end_age = end_age
       @available_keys = ('AA'..'ZZ').to_a
@@ -38,6 +51,7 @@ module FortuneTeller
       OBJECT_TYPES.each do |object_type|
         send("#{object_type.to_s.pluralize}=".to_sym, {})
       end
+      set_allocation_strategy(:none)
     end
 
     def initial_take_home_pay
@@ -69,14 +83,6 @@ module FortuneTeller
         guaranteed_cashflows: all_guaranteed_cashflows,
         allocation_strategy: @allocation_strategy,
         result_serializer: result_serializer
-      )
-    end
-
-    def add_allocation_strategy(allocations:)
-      raise setup_error(:allocation_exists) unless @allocation_strategy.nil?
-      @allocation_strategy = FortuneTeller::AllocationStrategy.new(
-        allocations: allocations,
-        start_year:  start_year
       )
     end
 
@@ -147,6 +153,10 @@ module FortuneTeller
     def youngest_birthday
       return @primary.birthday if no_partner?
       [@primary.birthday, @partner.birthday].min
+    end
+
+    def strategies
+      FortuneTeller::Strategies
     end
 
     def initial_state

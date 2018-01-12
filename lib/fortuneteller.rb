@@ -11,13 +11,17 @@ require 'fortuneteller/simulator'
 require 'fortuneteller/simulation'
 require 'fortuneteller/person'
 require 'fortuneteller/growth_rate_set'
-require 'fortuneteller/allocation_strategy'
+# require 'fortuneteller/allocation_strategy'
 
 require 'fortuneteller/errors/plan_setup_error'
 
 require 'fortuneteller/utils/inflating_int'
 require 'fortuneteller/utils/inflating_int_cache'
 require 'fortuneteller/utils/social_security'
+
+require 'fortuneteller/strategies/allocation.rb'
+require 'fortuneteller/strategies/allocation/none.rb'
+require 'fortuneteller/strategies/allocation/annual.rb'
 
 require 'fortuneteller/result_serializers/test'
 require 'fortuneteller/result_serializers/monte_carlo'

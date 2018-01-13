@@ -19,9 +19,12 @@ require 'fortuneteller/utils/inflating_int'
 require 'fortuneteller/utils/inflating_int_cache'
 require 'fortuneteller/utils/social_security'
 
-require 'fortuneteller/strategies/allocation.rb'
 require 'fortuneteller/strategies/allocation/none.rb'
 require 'fortuneteller/strategies/allocation/annual.rb'
+
+require 'fortuneteller/strategies/debit/base.rb'
+require 'fortuneteller/strategies/debit/proportional.rb'
+require 'fortuneteller/strategies/debit/tax_sequence.rb'
 
 require 'fortuneteller/result_serializers/test'
 require 'fortuneteller/result_serializers/monte_carlo'

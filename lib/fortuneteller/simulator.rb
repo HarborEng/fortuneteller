@@ -3,11 +3,9 @@ module FortuneTeller
   class Simulator
     OBJECT_TYPES = %i[account job social_security spending_strategy tax_strategy]
     USER_TYPES = %i[primary partner]
-    STRATEGIES = %i[allocation withdrawal]
+    STRATEGIES = %i[allocation debit]
 
     attr_reader :beginning
-
-    attr_accessor :allocation_strategy, :withdrawal_strategy
 
     USER_TYPES.each do |user_type|
       attr_reader user_type
@@ -52,7 +50,7 @@ module FortuneTeller
         send("#{object_type.to_s.pluralize}=".to_sym, {})
       end
       set_allocation_strategy(:none)
-      set_withdrawal_strategy(:even)
+      set_debit_strategy(:proportional)
     end
 
     def initial_take_home_pay
@@ -83,7 +81,7 @@ module FortuneTeller
         transforms: all_transforms,
         guaranteed_cashflows: all_guaranteed_cashflows,
         allocation_strategy: @allocation_strategy,
-        withdrawal_strategy: @withdrawal_strategy,
+        debit_strategy: @debit_strategy,
         result_serializer: result_serializer
       )
     end
@@ -162,17 +160,21 @@ module FortuneTeller
     end
 
     def initial_state
-      {
-        date: @beginning,
-        accounts: accounts.transform_values do |a| 
+      @initial_state ||= begin
+        accounts_state = accounts.transform_values do |a| 
           r = a.plan.to_reader.on(@beginning)
           {
             date: @beginning,
+            total_balance: r.balances.values.sum,
             type: r.type,
             balances: r.balances.dup
           }
         end
-      }
+        {
+          date: @beginning,
+          accounts: accounts_state
+        }
+      end
     end
 
     def no_partner?

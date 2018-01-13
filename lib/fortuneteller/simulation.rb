@@ -12,15 +12,15 @@ module FortuneTeller
         transforms:, 
         guaranteed_cashflows:, 
         allocation_strategy:,
-        withdrawal_strategy:
+        debit_strategy:
       )
-      @state = initial_state
+      @state = initial_state.deep_dup
       @account_keys = @state[:accounts].keys
       @start_year = initial_state[:date].year
       @growth_rates = growth_rates
       @all_transforms = transforms
       @allocation_strategy = allocation_strategy
-      @withdrawal_strategy = withdrawal_strategy
+      @debit_strategy = debit_strategy
       @cumulative_cache = {}
       @inflating_int_cache = Utils::InflatingIntCache.new(growth_rates)
       @guaranteed_take_homes = resolve_cashflows(guaranteed_cashflows)
@@ -54,22 +54,14 @@ module FortuneTeller
       @result.output
     end
 
-    def credit_account(key:, amount:, date:, holding: nil)
+    def credit_account!(key:, amount:, date:, holding: nil)
       pass_time_account!(key: key, to: date)
       if holding.nil?
         #smart credit?
       else
         @state[:accounts][key][:balances][holding] += amount
+        @state[:accounts][key][:total_balance] += amount
       end
-    end
-
-    def debit(amount:, date:)
-      @withdrawal_strategy.withdraw!(
-        amount: amount,
-        date: date,
-        sim: self,
-        accounts: @state[:accounts]
-      )
     end
 
     def inflate(amount:, date:)
@@ -81,7 +73,7 @@ module FortuneTeller
     end
 
     def balance(key:)
-      @state[:accounts][key][:balances].values.sum
+      @state[:accounts][key][:total_balance]
     end
 
     def pass_time_account!(key:, to:)
@@ -90,32 +82,60 @@ module FortuneTeller
         return
       end
       days = (to - account[:date]).to_i
+      new_total = 0
       account[:balances].each do |h, v|
-        account[:balances][h] = (v*(@growth_rates.daily(h, @current_year)**days)).round
+        new_v = (v*(@growth_rates.daily(h, @current_year)**days)).round
+        account[:balances][h] = new_v
+        new_total += new_v
       end
       account[:date] = to
+      account[:total_balance] = new_total
     end
 
-    def debit_account(key:, amount:, date:, pass_time: true)
+    def debit!(amount:, date:)
+      @debit_strategy.debit!(
+        amount: amount,
+        date: date,
+        sim: self,
+        accounts: @state[:accounts]
+      )
+    end
+
+    def debit_account!(key:, amount:, date:, pass_time: true)
       pass_time_account!(key: key, to: date) if pass_time
 
-      before_balance = balance(key: key)
+      start_total = @state[:accounts][key][:total_balance]
 
-      balances = @state[:accounts][key][:balances]
-
-      # Even withdrawal
-      balances.transform_values! { |a| (a - ((a.to_f/before_balance)*amount).round) }
-
-      #maybe we should ignore the rounding errors
-      after_balance = balance(key: key)
-      diff = (before_balance - amount - after_balance)
-      if diff != 0
-        balances[balances.keys.first] += diff
-      end
-
-      #Update cashflow
+      # Guaranteed updates
+      @state[:accounts][key][:total_balance] -= amount
       @annual_cashflows[(date.year-@start_year)][:withdrawal] += amount
       @annual_cashflows[(date.year-@start_year)][:posttax] += amount
+
+      # Figure out balances
+      if(@state[:accounts][key][:total_balance]==0)
+        @state[:accounts][key][:balances].transform_values! {|x| 0 }
+      else
+        balances = @state[:accounts][key][:balances]
+
+        debited = 0
+        balances.each do |k, v|
+          # prevent over-debit
+          debit = [((v.to_f/start_total)*amount).round, v].min
+          debited += debit
+          balances[k] -= debit
+        end
+
+        #with over-debit impossible, diff can only be positive
+        diff = amount - debited 
+        if diff != 0
+          balances.each do |k, v|
+            extra = [diff, v].min
+            diff -= extra
+            balances[k] -= extra
+            break if diff == 0
+          end
+        end
+      end
     end
 
     def pass_time_all!(to:)

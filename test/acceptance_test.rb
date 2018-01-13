@@ -115,6 +115,12 @@ class AcceptanceTest < Minitest::Test
       r = FortuneTeller::Benchmark.run.as_json
     end
 
+    result.each_with_index do |r, i|
+      result[i]["accounts"].transform_values! do |a|
+        {"date"=>a["date"],"type"=>a["type"],"balances"=>a["balances"]}
+      end
+    end
+
     result.zip(expected_no_reallocation) do |actual, expected|
       assert_equal actual, expected
     end
@@ -140,12 +146,18 @@ class AcceptanceTest < Minitest::Test
     result = Timecop.freeze(Date.parse('2017-12-14')) do
       sim = FortuneTeller::Benchmark.create_sim
       sim.set_allocation_strategy(:annual, {stocks: [5000], bonds: [5000]})
-      sim.set_withdrawal_strategy(:tax_sequence)
+      # sim.set_withdrawal_strategy(:tax_sequence)
       context = FortuneTeller::Benchmark.default_context
-      sim.simulate(**context)
+      sim.simulate(**context).as_json
     end
 
-    result.as_json.zip(expected_5050_reallocation) do |actual, expected|
+    result.each_with_index do |r, i|
+      result[i]["accounts"].transform_values! do |a|
+        {"date"=>a["date"],"type"=>a["type"],"balances"=>a["balances"]}
+      end
+    end
+
+    result.zip(expected_5050_reallocation) do |actual, expected|
       assert_equal actual, expected
     end
   end

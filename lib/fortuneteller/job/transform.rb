@@ -13,7 +13,7 @@ module FortuneTeller
         @account_credits.each do |k, allocations|
           allocations.each do |holding, amount|
             grown_amount = sim.inflate(amount: amount, date: date)
-            sim.credit_account(key: k, holding: holding, date: date, amount: grown_amount)
+            sim.credit_account!(key: k, holding: holding, date: date, amount: grown_amount)
           end
         end
       end

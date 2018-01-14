@@ -132,5 +132,17 @@ module FortuneTeller
 
       sim
     end
+
+    def self.create_sim_guaranteed_income
+      sim = create_sim
+      sim.add_guaranteed_income do |plan|
+        plan.on(Date.new(2032, 2, 5)).start(
+          amount: 500_00,
+          annual_increase: 1.02
+        )
+      end
+      sim
+    end
+
   end
 end

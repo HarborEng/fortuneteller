@@ -1,7 +1,7 @@
 module FortuneTeller
   # Simulates personal finances.
   class Simulator
-    OBJECT_TYPES = %i[account job social_security spending_strategy tax_strategy]
+    OBJECT_TYPES = %i[account job social_security guaranteed_income spending_strategy tax_strategy]
     USER_TYPES = %i[primary partner]
     STRATEGIES = %i[allocation debit]
 
@@ -128,7 +128,7 @@ module FortuneTeller
 
     def guaranteed_cashflow_components
       @guaranteed_cashflow_components ||=
-        %i[job social_security].map do |object_type|
+        %i[job social_security guaranteed_income].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
         .flat_map(&:values)
@@ -144,7 +144,7 @@ module FortuneTeller
 
     def plan_components
       @plan_components ||=
-        %i[job social_security spending_strategy].map do |object_type|
+        %i[job social_security guaranteed_income spending_strategy].map do |object_type|
           send(object_type.to_s.pluralize.to_sym)
         end
         .flat_map(&:values)

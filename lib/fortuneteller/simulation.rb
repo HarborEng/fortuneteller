@@ -158,7 +158,7 @@ module FortuneTeller
             reduce_cashflows(
               month
                 .map do |cashflow|
-                  cashflow.transform_values{ |a| inflate_year(amount: a, year: year) }
+                  cashflow.transform_values{ |a| (a.is_a?(Integer) ? a : inflate_year(amount: a, year: year)) }
                 end
             )
           end
@@ -168,7 +168,7 @@ module FortuneTeller
         @annual_cashflows[year_index] = annual_cashflow
         monthly_guaranteed.map do |month|
           month.default = 0
-          (month[:pretax_w2]*annual_cashflow[:w2_rate] + month[:pretax_ss]*annual_cashflow[:ss_rate]).round
+          (month[:pretax_w2]*annual_cashflow[:w2_rate] + month[:pretax_ss]*annual_cashflow[:ss_rate] + month[:pretax_gty]*annual_cashflow[:gty_rate]).round
         end
       end
     end
@@ -180,8 +180,10 @@ module FortuneTeller
     def calculate_tax!(cashflow, year_index)
       cashflow.default = 0
       cashflow[:w2_rate] = 0.7
+      cashflow[:gty_rate] = 0.7
       cashflow[:ss_rate] = 1
       cashflow[:posttax_w2] = (cashflow[:pretax_w2]*cashflow[:w2_rate]).round
+      cashflow[:posttax_gty] = (cashflow[:pretax_gty]*cashflow[:gty_rate]).round
       cashflow[:posttax_ss] = (cashflow[:pretax_ss]*cashflow[:ss_rate]).round
       cashflow[:posttax] = cashflow[:posttax_w2]+cashflow[:posttax_ss]
     end

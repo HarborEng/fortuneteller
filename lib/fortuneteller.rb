@@ -29,7 +29,7 @@ require 'fortuneteller/strategies/debit/tax_sequence.rb'
 require 'fortuneteller/result_serializers/test'
 require 'fortuneteller/result_serializers/monte_carlo'
 
-%i[base account job social_security spending_strategy tax_strategy].each do |object_type|
+%i[base account job social_security spending_strategy tax_strategy guaranteed_income].each do |object_type|
   require "fortuneteller/#{object_type}/day_plan"
   require "fortuneteller/#{object_type}/component"
   require "fortuneteller/#{object_type}/plan"

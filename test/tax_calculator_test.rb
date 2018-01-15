@@ -51,4 +51,47 @@ class TaxCalculatorTest < Minitest::Test
     assert_equal(expected, brackets)
   end
 
+  def test_merging_brackets
+    # Some states have a 0 bracket in addition to a deduction.  Make sure those get merged appropriately
+    custom_lib = {
+      federal: {
+        single: {
+          deductions: [{deduction_amount: 10000}],
+          income_tax_brackets: [
+            {bracket: 0, marginal_rate: 0},
+            {bracket: 90000, marginal_rate: 10},
+            {bracket: 190000, marginal_rate: 20}
+          ]
+        }
+      },
+      state: {
+        single: {
+          deductions: [],
+          income_tax_brackets: [
+            {bracket: 0, marginal_rate: 0},
+            {bracket: 25000, marginal_rate: 5},
+            {bracket: 75000, marginal_rate: 10},
+            {bracket: 150000, marginal_rate: 15},
+          ]
+        }        
+      }
+    }
+
+    calc = FortuneTeller::Utils::TaxCalculator.new(
+      bracket_lib: custom_lib,
+      state: :state,
+      filing_status: :single,
+    )
+    brackets = calc.instance_variable_get(:@merged_brackets)
+    expected = [
+      {:pretax_min=>0, :pretax_max=>2500000, :posttax_min=>0, :posttax_max=>2500000, :marginal_rate=>0}, 
+      {:pretax_min=>2500000, :pretax_max=>7500000, :posttax_min=>2500000, :posttax_max=>7250000, :marginal_rate=>5}, 
+      {:pretax_min=>7500000, :pretax_max=>10000000, :posttax_min=>7250000, :posttax_max=>9500000, :marginal_rate=>10}, 
+      {:pretax_min=>10000000, :pretax_max=>15000000, :posttax_min=>9500000, :posttax_max=>13500000, :marginal_rate=>20}, 
+      {:pretax_min=>15000000, :pretax_max=>20000000, :posttax_min=>13500000, :posttax_max=>17250000, :marginal_rate=>25}, 
+      {:pretax_min=>20000000, :pretax_max=>nil, :posttax_min=>17250000, :posttax_max=>nil, :marginal_rate=>35}
+    ]
+    assert_equal(expected, brackets)
+  end
+
 end

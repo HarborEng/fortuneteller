@@ -61,11 +61,56 @@ module FortuneTeller
       end
 
       def merge_brackets(*args)
+        merging = args.delete_if(&:nil?)
+        return merging.first if merging.length==1
 
+        indices = Array.new(merging.length, 0)
+        lengths = merging.map {|x| x.length}
+        merged = []
+        while true
+          pretax_min = (merged.empty? ? 0 : merged.last[:pretax_max])
+          posttax_min = (merged.empty? ? 0 : merged.last[:posttax_max])
+
+          low_index = nil
+          pretax_max = nil
+          marginal_rate = 0
+
+          indices.map.with_index do |x, i|
+            b = merging[i][x]
+
+            marginal_rate += b[:marginal_rate]
+
+            if not b[:pretax_max].nil? and (pretax_max.nil? or b[:pretax_max] < pretax_max)
+              low_index = i
+              pretax_max = b[:pretax_max]
+            end
+          end
+
+          if low_index.nil?
+            merged << {
+              pretax_min: pretax_min,
+              pretax_max: nil,
+              posttax_min: posttax_min,
+              posttax_max: nil,
+              marginal_rate: marginal_rate              
+            }
+            break
+          else
+            merged << {
+              pretax_min: pretax_min,
+              pretax_max: pretax_max,
+              posttax_min: posttax_min,
+              posttax_max: (posttax_min+(pretax_max-pretax_min)*((100-marginal_rate).to_f/100)).round,
+              marginal_rate: marginal_rate
+            }
+            indices[low_index] += 1
+          end
+        end
+        merged
       end
 
       def build_brackets
-        merge_brackets(
+        @merged_brackets = merge_brackets(
           build_adjusted_brackets(:federal),
           build_adjusted_brackets(@state),
         )

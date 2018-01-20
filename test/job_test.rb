@@ -20,6 +20,6 @@ class JobTest < MiniTest::Test
 
     cashflows = component.generators[(Date.today.year+1)].gen_cashflows
 
-    assert_equal 10200_00, cashflows.first[:pretax_w2].on_year((Date.today.year + 1), growth_rates: growth_rates)
+    assert_equal 10200_00, cashflows.first[:w2_income].on_year((Date.today.year + 1), growth_rates: growth_rates)
   end
 end

@@ -12,7 +12,7 @@ module FortuneTeller
         return nil if @data[month_index].nil?
         benefit = @data[month_index]
         {
-          pretax_ss: benefit
+          ss_income: benefit
         }
       end
     end

@@ -18,7 +18,7 @@ module FortuneTeller
         return nil if @data[month_index].nil?
         wages, matched, saved = @data[month_index][:income].values_at(:wages, :matched, :saved)
         {
-          pretax_w2: (wages - saved)
+          w2_income: (wages - saved)
         }
       end
     end

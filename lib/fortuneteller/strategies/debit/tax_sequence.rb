@@ -29,9 +29,9 @@ module FortuneTeller::Strategies
       end
 
       SEQUENCE_MAP = {
-        :after_tax              => 0,
-        :roth_retirement        => 1,
-        :traditional_retirement => 2,
+        :regular      => 0,
+        :roth         => 1,
+        :qualified  => 2,
       }
     end
   end

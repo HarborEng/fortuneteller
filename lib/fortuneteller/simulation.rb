@@ -108,8 +108,9 @@ module FortuneTeller
 
       # Guaranteed updates
       @state[:accounts][key][:total_balance] -= amount
-      @annual_cashflows[(date.year-@start_year)][:withdrawal] += amount
-      @annual_cashflows[(date.year-@start_year)][:posttax] += amount
+      tax_type = FortuneTeller::Account::Component::TAX_MAP[@state[:accounts][key][:type]]
+      @annual_cashflows[(date.year-@start_year)][:posttax]["#{tax_type}_withdrawal".to_sym] += amount
+      @annual_cashflows[(date.year-@start_year)][:posttax][:total] += amount
 
       # Figure out balances
       if(@state[:accounts][key][:total_balance]==0)
@@ -148,7 +149,12 @@ module FortuneTeller
     # Note: This calculation is only dependent on guaranteed_cashflows and growth_rates
     # So, cashflows can be resolved outside of the simulation if it is helpful.
     def resolve_cashflows(guaranteed_cashflows)
-      @annual_cashflows = Array.new(guaranteed_cashflows.length)
+      tax_brackets = FortuneTeller::Utils::TAX_BRACKETS_2017_Q3
+      @tax_calculators = Array.new(guaranteed_cashflows.length)
+      @annual_cashflows = {
+        pretax: Array.new(guaranteed_cashflows.length),
+        posttax: Array.new(guaranteed_cashflows.length),
+      }
       guaranteed_cashflows.map.with_index.each do |months, year_index|
         year = @start_year+year_index
         monthly_guaranteed = months.map do |month|
@@ -163,29 +169,29 @@ module FortuneTeller
             )
           end
         end
-        annual_cashflow = reduce_cashflows(monthly_guaranteed)
-        calculate_tax!(annual_cashflow, year_index)
-        @annual_cashflows[year_index] = annual_cashflow
+        year_cashflow = {}
+        year_cashflow[:pretax] = reduce_cashflows(monthly_guaranteed)
+        @tax_calculators[year_index] = FortuneTeller::Utils::TaxCalculator.new(
+          bracket_lib: tax_brackets, 
+          state: :florida, 
+          filing_status: :single
+        )
+        year_cashflow[:posttax] = @tax_calculators[year_index].calculate_posttax(year_cashflow[:pretax])
+
+        @annual_cashflows[year_index] = year_cashflow
+
         monthly_guaranteed.map do |month|
-          month.default = 0
-          (month[:pretax_w2]*annual_cashflow[:w2_rate] + month[:pretax_ss]*annual_cashflow[:ss_rate] + month[:pretax_gty]*annual_cashflow[:gty_rate]).round
+          total = 0
+          month.each do |k,v|
+            total += (v.to_f*year_cashflow[:posttax][k]/year_cashflow[:pretax][k]).round
+          end
+          total
         end
       end
     end
 
     def reduce_cashflows(cashflows)
       cashflows.reduce({}){|l,r| l.merge!(r){ |_k, a, b| (a + b) } }
-    end
-
-    def calculate_tax!(cashflow, year_index)
-      cashflow.default = 0
-      cashflow[:w2_rate] = 0.7
-      cashflow[:gty_rate] = 0.7
-      cashflow[:ss_rate] = 1
-      cashflow[:posttax_w2] = (cashflow[:pretax_w2]*cashflow[:w2_rate]).round
-      cashflow[:posttax_gty] = (cashflow[:pretax_gty]*cashflow[:gty_rate]).round
-      cashflow[:posttax_ss] = (cashflow[:pretax_ss]*cashflow[:ss_rate]).round
-      cashflow[:posttax] = cashflow[:posttax_w2]+cashflow[:posttax_ss]
     end
   end
 end

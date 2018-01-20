@@ -11,6 +11,22 @@ module FortuneTeller
         build_brackets
       end
 
+      def calculate_posttax(pretax)
+        #Start by matching the test case
+        pretax.default = 0
+        post = {
+          w2_income: (pretax[:w2_income]*0.7).round,
+          gty_income: (pretax[:gty_income]*0.7).round,
+          ss_income: (pretax[:ss_income]*1).round,
+          qualified_withdrawal: 0,
+          roth_withdrawal: 0,
+          regular_withdrawal: 0,
+        }
+        post.default = 0
+        post[:total] = post.values.sum
+        post
+      end
+
       private
 
       def build_adjusted_brackets(key)
@@ -30,7 +46,7 @@ module FortuneTeller
             pretax_max: deduction,
             posttax_min: 0,
             posttax_max: deduction,
-            marginal_rate: 0
+            marginal_rate: 0,
           }
         end
 

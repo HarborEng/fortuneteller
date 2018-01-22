@@ -4,9 +4,9 @@ module FortuneTeller::Strategies
       def debit!(sim:, accounts:, amount:, date:)
         debited = 0
 
-        sequence(accounts).each do |k|
+        sequence(accounts).each do |accounts_to_debit|
           debited += proportional_debit(
-            debit_keys: sim.account_keys, 
+            debit_keys: accounts_to_debit,
             accounts: accounts, 
             amount: (amount-debited), 
             date: date, 

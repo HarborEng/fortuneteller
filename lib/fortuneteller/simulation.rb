@@ -182,8 +182,10 @@ module FortuneTeller
 
         monthly_guaranteed.map do |month|
           total = 0
-          month.each do |k,v|
-            total += (v.to_f*year_cashflow[:posttax][k]/year_cashflow[:pretax][k]).round
+          month.each do |k, v|
+            next if v.zero?
+
+            total += (v.to_f * year_cashflow[:posttax][k]/year_cashflow[:pretax][k]).round
           end
           total
         end

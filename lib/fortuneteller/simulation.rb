@@ -25,6 +25,7 @@ module FortuneTeller
       @inflating_int_cache = Utils::InflatingIntCache.new(growth_rates)
       @guaranteed_take_homes = resolve_cashflows(guaranteed_cashflows)
       @result_serializer = result_serializer
+      @instance_variables = {}
     end
 
     def guaranteed_take_home(year, month)
@@ -142,6 +143,13 @@ module FortuneTeller
     def pass_time_all!(to:)
       @account_keys.each {|k| pass_time_account!(key: k, to: to) }
       @state[:date] = to
+    end
+
+    def instance_get(key)
+      @instance_variables[key]
+    end
+    def instance_set(key, value)
+      @instance_variables[key] = value
     end
 
     private

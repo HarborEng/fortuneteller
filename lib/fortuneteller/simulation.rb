@@ -5,6 +5,8 @@ module FortuneTeller
     end
 
     attr_accessor :account_keys
+    attr_reader :start_year, :growth_rates
+
     def initialize(
         result_serializer:, 
         initial_state:, 
@@ -67,6 +69,11 @@ module FortuneTeller
 
     def inflate(amount:, date:)
       @inflating_int_cache.calculate(amount, date)
+    end
+
+    def deflate(amount:, year_index:)
+      factor = @growth_rates.cumulative(:inflation, @start_year, @start_year + year_index)
+      amount / factor
     end
 
     def inflate_year(amount:, year:)

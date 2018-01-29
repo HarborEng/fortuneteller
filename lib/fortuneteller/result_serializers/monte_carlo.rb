@@ -14,6 +14,7 @@ module FortuneTeller
 
       def set_cashflow(i, cashflow)
         @result[i][:income] = cashflow[:posttax]
+        @result[i][:income_inf_adj] = @sim.deflate(amount: cashflow[:posttax][:total], year_index: i).round
       end
 
       def output

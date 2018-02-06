@@ -5,55 +5,126 @@ module FortuneTeller
       attr_accessor :pia
       attr_accessor :salary_data
 
-      def initialize(dob:, salary_data: nil)
+      def initialize(dob:)
         @dob = dob
         @adjusted_dob = dob.yesterday
         @cbb_map = {}
-        # Note: include past AND future salaries
-        @salary_data = salary_data
       end
 
       def full_retirement_month
-        return @frm unless @frm.nil?
-
-        year = @adjusted_dob.year
-        frm = @adjusted_dob.at_beginning_of_month
-        if year <= 1938
-          @frm = frm.years_since(65)
-        elsif (year >= 1943 and year <= 1954)
-          @frm = frm.years_since(66)
-        elsif year >= 1960
-          @frm = frm.years_since(67)
-        else
-          t = TRANSITION_YEARS[year]
-          @frm = frm.years_since(t[0]).months_since(t[1])             
-        end     
+        @frm ||= begin 
+          year = @adjusted_dob.year
+          frm = @adjusted_dob.at_beginning_of_month
+          if year <= 1938
+            frm.years_since(65)
+          elsif (year >= 1943 and year <= 1954)
+            frm.years_since(66)
+          elsif year >= 1960
+            frm.years_since(67)
+          else
+            t = TRANSITION_YEARS[year]
+            frm.years_since(t[0]).months_since(t[1])             
+          end
+        end 
       end
 
       def max_retirement_month
-        @adjusted_dob.at_beginning_of_month.years_since(70)
+        @maxrm ||= @adjusted_dob.at_beginning_of_month.years_since(70)
       end
 
       def min_retirement_month
-        if @adjusted_dob.day == 1
-          @adjusted_dob.years_since(62)
-        else
-          @adjusted_dob.at_beginning_of_month.years_since(62).months_since(1)
+        @minrm ||= begin
+          if @adjusted_dob.day == 1
+            @adjusted_dob.years_since(62)
+          else
+            @adjusted_dob.at_beginning_of_month.years_since(62).months_since(1)
+          end
         end
       end
 
-      def calculate_all_benefits
+      def calculate_all_benefits(salary_data: nil, fra_pia: nil, include_spousal: false, spouse_dob: nil)
         data = {}
         current_month = min_retirement_month
         last_month = max_retirement_month
         while current_month <= last_month
-          data[current_month] = calculate_monthly_benefit(current_month)
+          benefit = calculate_monthly_benefit(
+            start_month: current_month,
+            salary_data: salary_data,
+            fra_pia: fra_pia
+          )
+          data[current_month] = {
+            benefit: benefit,
+            spousal_benefits: calculate_spousal_benefits(
+              benefit: benefit,
+              spouse_dob: spouse_dob
+            )
+          }
           current_month = current_month.months_since(1)
         end
       end
 
-      def from_salary_data(start_month:, salary_data:)
-        salaries = salary_data.map do |y, s| 
+      def set_salary_data(current_salary:, annual_raise:)
+        year = Date.today.year
+        last_year = max_retirement_month.year
+        salary_data = {year => current_salary}
+        ((@dob.year+18)..(year-1)).reverse_each do |y|
+          salary_data[y] = (salary_data[y+1]/annual_raise).floor
+        end
+        if(last_year > year)
+          ((year+1)..last_year).each do |y|
+            salary_data[y] = (salary_data[y-1]*annual_raise).floor
+          end
+        end
+        @salary_data = salary_data
+      end
+
+      def set_fra_pia(fra_pia:)
+        @fra_pia = fra_pia
+      end
+
+      def calculate_benefit(start_month:, spouse_pia: nil)
+        check_bounds(start_month)
+        benefit = {personal: 0, spousal: 0}
+
+        unless spouse_pia.nil?
+          pia = (spouse_pia/2.0).floor
+          benefit[:spousal] = adjust_spousal_benefit(pia: pia, start_month: start_month)
+        end
+
+        unless @salary_data.nil? and @fra_pia.nil?
+          if not @salary_data.nil?
+            pia = from_salary_data(start_month: start_month)
+          elsif not @fra_pia.nil?
+            pia = from_fra_pia(start_month: start_month)
+          end
+          benefit[:personal] = adjust_personal_benefit(pia: pia, start_month: start_month)
+        end
+
+        if benefit[:spousal] > benefit[:personal]
+          {amount: benefit[:spousal], type: :spousal}
+        else
+          {amount: benefit[:personal], type: :personal}
+        end
+      end
+
+      private
+
+      def check_bounds(start_month)
+        if(start_month < min_retirement_month)
+          bounds_error(start: start_month, min: min_retirement_month)
+        elsif(start_month > max_retirement_month)
+          bounds_error(start: start_month, max: max_retirement_month)
+        end
+      end
+
+      def calculate_spousal_benefits(benefit:, spouse_dob:)
+        spouse_calc = FortuneTeller::Utils::SocialSecurity.new(dob: spouse_dob)
+        current_month = spouse_calc.min_retirement_month
+        last_month = spouse_calc.max_retirement_month        
+      end
+
+      def from_salary_data(start_month:)
+        salaries = @salary_data.map do |y, s| 
           (y > start_month.year ? 0 : ([cbb(y), s].min*indexing_factors[y]).floor)
         end
         aime = (salaries.sort.last(35).reduce(:+)/(35.0*12)).floor
@@ -74,8 +145,8 @@ module FortuneTeller
         pia_adjusted
       end
 
-      def from_fra_pia(start_month:, fra_pia:)
-        pia_adjusted = fra_pia
+      def from_fra_pia(start_month:)
+        pia_adjusted = @fra_pia
         if start_month.year < full_retirement_month.year
           (start_month.year..(full_retirement_month.year-1)).each do |y|
             pia_adjusted = (pia_adjusted/cola(y)).floor
@@ -87,46 +158,6 @@ module FortuneTeller
         end
         pia_adjusted
       end
-
-      def build_salary_data(current_salary:, annual_raise:)
-        year = Date.today.year
-        last_year = max_retirement_month.year
-        salary_data = {year => current_salary}
-        ((@dob.year+18)..(year-1)).reverse_each do |y|
-          salary_data[y] = (salary_data[y+1]/annual_raise).floor
-        end
-        if(last_year > year)
-          ((year+1)..last_year).each do |y|
-            salary_data[y] = (salary_data[y-1]*annual_raise).floor
-          end
-        end
-        salary_data
-      end
-
-      def calculate_benefit(start_month:, salary_data: nil, fra_pia: nil)
-        pia = 0
-        if not salary_data.nil?
-          pia = from_salary_data(start_month: start_month, salary_data: salary_data)
-        elsif not fra_pia.nil?
-          pia = from_fra_pia(start_month: start_month, fra_pia: fra_pia)
-        end
-
-        frm = full_retirement_month
-
-        return pia if start_month == frm
-
-        if(start_month < frm)
-          min_rm = min_retirement_month
-          raise bounds_error(start: start_month, min: min_rm) if start_month < min_rm
-          early_benefit( months: month_diff(start_month, frm) )
-        else
-          max_rm = max_retirement_month
-          raise bounds_error(start: start_month, max: max_rm) if start_month > max_rm
-          late_benefit( months: month_diff(frm, start_month) )
-        end
-      end
-
-      private
 
       def awi(year) #average wage index
         return AWI_1951_START[(year-1951)]
@@ -147,7 +178,7 @@ module FortuneTeller
         if modulo < 150_00
           calc -= modulo
         else
-          calc += (300-modulo) #TODO: Investigate
+          calc += (300_00-modulo)
         end
 
         @cbb_map[year] = (calc > cbb(year-1) ? calc : cbb(year-1))
@@ -183,9 +214,33 @@ module FortuneTeller
         @indexing_factors
       end
 
+      def adjust_spousal_benefit(pia:, start_month:)
+        frm = full_retirement_month
+        
+        return pia if start_month >= frm
+        months = month_diff(start_month, frm)
+        if months <= 36
+          multiplier = 100.0 - ((25.0 * months) / 36.0)
+        else
+          multiplier = 100.0 - 25.0 - ((5.0 * (months-36)) / 12.0)
+        end
+        (pia*multiplier/100.0).floor        
+      end
+
+      def adjust_personal_benefit(pia:, start_month:)
+        frm = full_retirement_month
+
+        return pia if start_month == frm
+        if(start_month < frm)
+          early_personal_benefit(pia: pia, months: month_diff(start_month, frm))
+        else
+          late_spouse_benefit(pia: pia, months: month_diff(frm, start_month))
+        end
+      end
+
       # Based on https://www.ssa.gov/oact/quickcalc/early_late.html 11/16/2017
       # https://www.ssa.gov/oact/quickcalc/earlyretire.html
-      def early_benefit(pia:, months:)
+      def early_personal_benefit(pia:, months:)
         if months <= 36
           multiplier = 100.0 - ((5.0 * months) / 9.0)
         else
@@ -195,7 +250,7 @@ module FortuneTeller
       end
 
       # Based on https://www.ssa.gov/oact/quickcalc/early_late.html 11/16/2017
-      def late_benefit(pia:, months:)
+      def late_spouse_benefit(pia:, months:)
         year = @adjusted_dob.year
         if year <= 1924
           monthly = 6/24.0

@@ -31,11 +31,7 @@ module FortuneTeller
           calc = FortuneTeller::Utils::SocialSecurity.new(dob: simulator.send(@holder).birthday)
 
           if not plan.pia.nil?
-            # calc.fra_pia = plan.pia
-            benefit = calc.calculate_benefit(
-              fra_pia: plan.pia,
-              start_month: start_month
-            )
+            calc.set_fra_pia(fra_pia: plan.pia)
           else
             current_salary = simulator.jobs.values.keep_if { 
               |j| j.holder==@holder 
@@ -44,20 +40,18 @@ module FortuneTeller
             }.sum
             puts "CURRENT SAL #{@holder} #{current_salary}" if ENV['VERBOSE']
             
-            salary_data = calc.build_salary_data(
+            calc.set_salary_data(
               current_salary: current_salary,
               annual_raise: 1.03,
             )
-            benefit = calc.calculate_benefit(
-              salary_data: salary_data,
-              start_month: start_month
-            )
           end
+
+          benefit = calc.calculate_benefit(start_month: start_month)
 
           puts "BENEFIT #{benefit}" if ENV['VERBOSE']
 
           Utils::InflatingInt.new(
-            int: benefit,
+            int: benefit[:amount],
             start_date: start_month,
             growth_key: :inflation
           )

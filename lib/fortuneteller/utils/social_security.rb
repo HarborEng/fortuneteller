@@ -2,9 +2,6 @@ module FortuneTeller
   module Utils
 
     class SocialSecurity
-      attr_accessor :pia
-      attr_accessor :salary_data
-
       def initialize(dob:)
         @dob = dob
         @adjusted_dob = dob.yesterday
@@ -82,11 +79,12 @@ module FortuneTeller
         @fra_pia = fra_pia
       end
 
-      def calculate_benefit(start_month:, spouse_pia: nil)
+      def calculate_benefit(start_month:, spouse_calc: nil)
         check_bounds(start_month)
         benefit = {personal: 0, spousal: 0}
 
-        unless spouse_pia.nil?
+        unless spouse_calc.nil?
+          spouse_pia = spouse_calc.calculate_benefit(start_month: spouse_calc.full_retirement_month)
           pia = (spouse_pia/2.0).floor
           benefit[:spousal] = adjust_spousal_benefit(pia: pia, start_month: start_month)
         end

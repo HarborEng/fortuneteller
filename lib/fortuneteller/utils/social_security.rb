@@ -39,25 +39,51 @@ module FortuneTeller
         end
       end
 
-      def calculate_all_benefits(salary_data: nil, fra_pia: nil, include_spousal: false, spouse_dob: nil)
-        data = {}
-        current_month = min_retirement_month
-        last_month = max_retirement_month
-        while current_month <= last_month
-          benefit = calculate_monthly_benefit(
-            start_month: current_month,
-            salary_data: salary_data,
-            fra_pia: fra_pia
-          )
-          data[current_month] = {
-            benefit: benefit,
-            spousal_benefits: calculate_spousal_benefits(
-              benefit: benefit,
-              spouse_dob: spouse_dob
+      def start_month_from_age(years:, months:)
+        @adjusted_dob.at_beginning_of_month.years_since(years).months_since(months)
+      end
+
+      def calculate_all_benefits(partner_calc: nil)
+        benefits = {primary: []}
+        benefits[:partner] = [] unless partner_calc.nil?
+
+        (62..70).each do |age_years|
+          (0..11).each do |age_months|
+            break if (age_years==70 and age_months==1)
+            start_month = start_month_from_age(
+              years: age_years, 
+              months: age_months
             )
-          }
-          current_month = current_month.months_since(1)
+            benefit = calculate_benefit(
+              start_month: start_month, 
+              partner_calc: partner_calc
+            )
+            benefits[:primary] << {
+              start_month: start_month,
+              age: {years: age_years, months: age_months},
+              amount: benefit[:amount],
+              type: benefit[:type],
+            }
+
+            unless partner_calc.nil?
+              start_month = partner_calc.start_month_from_age(
+                years: age_years, 
+                months: age_months
+              )
+              benefit = partner_calc.calculate_benefit(
+                start_month: start_month, 
+                partner_calc: self
+              )
+              benefits[:partner] << {
+                start_month: start_month,
+                age: {years: age_years, months: age_months},
+                amount: benefit[:amount],
+                type: benefit[:type],                
+              }
+            end
+          end
         end
+        benefits
       end
 
       def set_salary_data(current_salary:, annual_raise:)
@@ -79,13 +105,14 @@ module FortuneTeller
         @fra_pia = fra_pia
       end
 
-      def calculate_benefit(start_month:, spouse_calc: nil)
-        check_bounds(start_month)
+      def calculate_benefit(start_month:, partner_calc: nil)
+        return {amount: 0, type: :ineligible} unless in_bounds?(start_month)
+
         benefit = {personal: 0, spousal: 0}
 
-        unless spouse_calc.nil?
-          spouse_pia = spouse_calc.calculate_benefit(start_month: spouse_calc.full_retirement_month)
-          pia = (spouse_pia/2.0).floor
+        unless partner_calc.nil?
+          partner_pia = partner_calc.calculate_benefit(start_month: partner_calc.full_retirement_month)
+          pia = (partner_pia[:amount]/2.0).floor
           benefit[:spousal] = adjust_spousal_benefit(pia: pia, start_month: start_month)
         end
 
@@ -107,18 +134,8 @@ module FortuneTeller
 
       private
 
-      def check_bounds(start_month)
-        if(start_month < min_retirement_month)
-          bounds_error(start: start_month, min: min_retirement_month)
-        elsif(start_month > max_retirement_month)
-          bounds_error(start: start_month, max: max_retirement_month)
-        end
-      end
-
-      def calculate_spousal_benefits(benefit:, spouse_dob:)
-        spouse_calc = FortuneTeller::Utils::SocialSecurity.new(dob: spouse_dob)
-        current_month = spouse_calc.min_retirement_month
-        last_month = spouse_calc.max_retirement_month        
+      def in_bounds?(start_month)
+        (start_month >= min_retirement_month && start_month <= max_retirement_month)
       end
 
       def from_salary_data(start_month:)
@@ -212,6 +229,7 @@ module FortuneTeller
         @indexing_factors
       end
 
+      # Based on https://www.ssa.gov/OACT/quickcalc/spouse.html 2/6/2018
       def adjust_spousal_benefit(pia:, start_month:)
         frm = full_retirement_month
         
@@ -227,12 +245,11 @@ module FortuneTeller
 
       def adjust_personal_benefit(pia:, start_month:)
         frm = full_retirement_month
-
         return pia if start_month == frm
         if(start_month < frm)
           early_personal_benefit(pia: pia, months: month_diff(start_month, frm))
         else
-          late_spouse_benefit(pia: pia, months: month_diff(frm, start_month))
+          late_personal_benefit(pia: pia, months: month_diff(frm, start_month))
         end
       end
 
@@ -248,7 +265,7 @@ module FortuneTeller
       end
 
       # Based on https://www.ssa.gov/oact/quickcalc/early_late.html 11/16/2017
-      def late_spouse_benefit(pia:, months:)
+      def late_personal_benefit(pia:, months:)
         year = @adjusted_dob.year
         if year <= 1924
           monthly = 6/24.0
@@ -263,10 +280,6 @@ module FortuneTeller
 
       def month_diff(a, b)
         (b.year * 12 + b.month) - (a.year * 12 + a.month)
-      end
-
-      def bounds_error(start:, min: nil, max: nil)
-        self.class::StartDateBounds.new(start: start, min: min, max: max)
       end
 
       def self.awi_projector
@@ -291,16 +304,6 @@ module FortuneTeller
           projected << last_awi
         end
         projected
-      end
-
-      class StartDateBounds < StandardError
-        def initialize(**kargs)
-          if not kargs[:max].nil?
-            super("Start #{kargs[:start]} is greater than max #{kargs[:max]}")
-          elsif not kargs[:min].nil?
-            super("Start #{kargs[:start]} is less than min #{kargs[:min]}")
-          end
-        end
       end
 
       TRANSITION_YEARS = {

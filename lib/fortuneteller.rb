@@ -20,6 +20,7 @@ require 'fortuneteller/utils/inflating_int_cache'
 require 'fortuneteller/utils/social_security'
 require 'fortuneteller/utils/tax_calculator'
 require 'fortuneteller/utils/tax_brackets_2017_q3'
+require 'fortuneteller/utils/income_estimator'
 
 require 'fortuneteller/strategies/allocation/none.rb'
 require 'fortuneteller/strategies/allocation/annual.rb'

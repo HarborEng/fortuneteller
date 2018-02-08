@@ -2,7 +2,7 @@ require 'test_helper'
 
 class SocialSecurityTest < MiniTest::Test
 
-  def atest_social_security
+  def test_social_security
     primary_calc = FortuneTeller::Utils::SocialSecurity.new(dob: Date.new(1959, 2, 1))
     primary_calc.set_salary_data(current_salary: 100_000_00, annual_raise: 1.03)
     

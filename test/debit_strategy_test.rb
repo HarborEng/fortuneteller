@@ -18,6 +18,6 @@ class WithdrawalStrategyTest < MiniTest::Test
       },
     }
     sequence = strategy.send(:sequence, accounts)
-    assert_equal [["AC"], ["AB", "AD"], ["AA"]], sequence
+    assert_equal [["AC"], ["AA"], ["AB", "AD"]], sequence
   end
 end

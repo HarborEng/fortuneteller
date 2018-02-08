@@ -29,9 +29,9 @@ module FortuneTeller::Strategies
       end
 
       SEQUENCE_MAP = {
-        :regular      => 0,
-        :roth         => 1,
-        :qualified  => 2,
+        :regular   => 0,
+        :qualified => 1,
+        :roth      => 2,
       }
     end
   end

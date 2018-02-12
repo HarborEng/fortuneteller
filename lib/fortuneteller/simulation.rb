@@ -186,12 +186,15 @@ module FortuneTeller
         end
         year_cashflow = {}
         year_cashflow[:pretax] = reduce_cashflows(monthly_guaranteed)
-        @tax_calculators[year_index] = FortuneTeller::Utils::TaxCalculator.new(
+        tax_calculator = FortuneTeller::Utils::TaxCalculator.new(
           bracket_lib: tax_brackets, 
           state: :florida, 
-          filing_status: :single
+          filing_status: :single,
+          inflation: @growth_rates.cumulative(:inflation, @start_year, year)
         )
-        year_cashflow[:posttax] = @tax_calculators[year_index].calculate_posttax(year_cashflow[:pretax])
+        tax_calculator.set_pretax(year_cashflow[:pretax])
+        year_cashflow[:posttax] = tax_calculator.calculate_posttax
+        @tax_calculators[year_index] = tax_calculator
 
         @annual_cashflows[year_index] = year_cashflow
 

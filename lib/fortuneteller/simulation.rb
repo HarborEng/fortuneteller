@@ -110,6 +110,7 @@ module FortuneTeller
     end
 
     def debit_account!(key:, amount:, date:, pass_time: true)
+      raise ArgumentError, "cannot debit negative amount #{amount} on #{date} to #{key}" if amount < 0
       pass_time_account!(key: key, to: date) if pass_time
 
       start_total = @state[:accounts][key][:total_balance]

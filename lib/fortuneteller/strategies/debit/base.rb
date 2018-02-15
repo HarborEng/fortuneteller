@@ -18,9 +18,11 @@ module FortuneTeller::Strategies
           # prevent over-debit
           debit = [
             ((accounts[k][:total_balance].to_f/cumulative)*amount).round, 
-            accounts[k][:total_balance]
+            accounts[k][:total_balance],
+            amount - debited,
           ].min
           debited += debit
+
           sim.debit_account!(key: k, amount: debit, date: date, pass_time: false)
         end
 

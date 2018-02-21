@@ -61,6 +61,7 @@ module FortuneTeller
           monthly_base -= (savings[:percent]/100.0 * monthly_base).round
         end
         monthly_base -= (0.30 * monthly_base).round
+        monthly_base
       end.sum.round
     end
 

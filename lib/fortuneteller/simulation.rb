@@ -113,6 +113,8 @@ module FortuneTeller
       )
     end
 
+    # Note, this is pretax and exlusive to the account data.  The debit strategy is responsible for
+    # applying taxes and updating cashflows
     def debit_account!(key:, amount:, date:, pass_time: true)
       raise ArgumentError, "cannot debit negative amount #{amount} on #{date} to #{key}" if amount < 0
       pass_time_account!(key: key, to: date) if pass_time

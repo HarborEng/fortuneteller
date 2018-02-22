@@ -33,11 +33,27 @@ module FortuneTeller
       end
 
       def calculate_pretax_amount(posttax:, tax_type:)
-        posttax
+        if tax_type == :qualified
+          (posttax.to_f/0.7).round
+        elsif tax_type == :regular
+          (posttax.to_f/0.8).round
+        elsif tax_type == :roth
+          posttax
+        else
+          raise "tax_type: '#{tax_type}' (#{tax_type.class})  is unknown."
+        end
       end
 
       def calculate_posttax_amount(pretax:, tax_type:)
-        pretax
+        if tax_type == :qualified
+          (pretax.to_f*0.7).round
+        elsif tax_type == :regular
+          (pretax.to_f*0.8).round
+        elsif tax_type == :roth
+          pretax
+        else
+          raise "tax_type: '#{tax_type}' (#{tax_type.class})  is unknown."
+        end
       end
 
       private

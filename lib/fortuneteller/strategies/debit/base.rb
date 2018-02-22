@@ -57,7 +57,9 @@ module FortuneTeller::Strategies
             extra = [diff, accounts[k][:total_balance]].min
             diff -= extra
             sim.debit_account!(key: k, amount: extra, date: date, pass_time: false)
-
+            tax_type = FortuneTeller::Account::Component::TAX_MAP[accounts[k][:type]]
+            cashflow[:posttax]["#{tax_type}_withdrawal".to_sym] += debit
+            cashflow[:posttax][:total] += debit
             break if diff == 0
           end
         end

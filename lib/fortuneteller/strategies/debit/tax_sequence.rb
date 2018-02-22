@@ -4,7 +4,11 @@ module FortuneTeller::Strategies
       def debit!(sim:, accounts:, amount:, date:, cashflow:, tax_calculator:)
         debited = 0
         SEQUENCE.each do |tax_type|
-          pretax_amount = tax_calculator.calculate_pretax_amount(posttax: amount, tax_type: tax_type)
+          target_debit = amount - debited
+          this_debit = 0
+          debit_keys = grouped_accounts(accounts)[tax_type]
+
+          pretax_amount = tax_calculator.calculate_pretax_amount(posttax: target_debit, tax_type: tax_type)
 
           cumulative = 0
           
@@ -17,10 +21,12 @@ module FortuneTeller::Strategies
 
           if(pretax_amount > cumulative)
             this_debit = tax_calculator.calculate_posttax_amount(pretax: cumulative, tax_type: tax_type)
-            accounts[k][:total_balance] = 0
-            accounts[k][:balances].transform_values! {|x| 0 }
+            debit_keys.each do |k|
+              accounts[k][:total_balance] = 0
+              accounts[k][:balances].transform_values! {|x| 0 }
+            end
           else
-            this_debit = amount
+            this_debit = target_debit
             this_debited = 0
 
             debit_keys.each do |k|
@@ -32,7 +38,7 @@ module FortuneTeller::Strategies
             end
 
             #with over-debit impossible, diff can only be positive
-            diff = this_debit - debited
+            diff = this_debit - this_debited
             if diff != 0
               debit_keys.each do |k|
                 v = accounts[k][:total_balance]
@@ -51,7 +57,7 @@ module FortuneTeller::Strategies
 
       private
 
-      def grouped_accounts
+      def grouped_accounts(accounts)
         @grouped_accounts ||= begin
           r = {
             regular: [],

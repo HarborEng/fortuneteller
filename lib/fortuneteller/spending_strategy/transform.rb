@@ -10,7 +10,6 @@ module FortuneTeller
 
       def apply_to!(sim:)
         if(@data[:strategy] == :exact)
-          # desired_debit = sim.inflate_year(amount: @data[:amount], year: @date.year) - sim.guaranteed_take_home(date.year, date.month)
           desired_debit = [sim.inflate_year(amount: @data[:amount], year: @date.year) - sim.guaranteed_take_home(date.year, date.month), 0].max
         elsif(@data[:strategy] == :percent)
           current = sim.instance_get(:spending_strategy)
@@ -43,6 +42,7 @@ module FortuneTeller
             desired_debit = start_amount
           end
         end
+
         sim.debit!(amount: desired_debit, date: date)
       end
     end

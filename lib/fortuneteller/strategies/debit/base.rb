@@ -40,9 +40,10 @@ module FortuneTeller::Strategies
           debit = [
             ((accounts[k][:total_balance].to_f/cumulative)*amount).round, 
             accounts[k][:total_balance],
-            amount - debited
+            amount - debited,
           ].min
           debited += debit
+
           sim.debit_account!(key: k, amount: debit, date: date, pass_time: false)
           tax_type = FortuneTeller::Account::Component::TAX_MAP[accounts[k][:type]]
           cashflow[:posttax]["#{tax_type}_withdrawal".to_sym] += debit

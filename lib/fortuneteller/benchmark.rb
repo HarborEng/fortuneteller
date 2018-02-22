@@ -246,5 +246,129 @@ module FortuneTeller
       sim
     end
 
+    def self.create_sim_tax_sequence
+      sim = FortuneTeller.new(Date.today)
+
+      sim.add_primary(
+        gender: :female,
+        birthday: Date.new(1964, 3, 2)
+      )
+
+      sim.add_partner(
+        gender: :male,
+        birthday: Date.new(1966, 5, 5)
+      )
+
+      # Define primary's key events and holdings
+      primary_retirement = Date.new(2031, 3, 1)
+
+      primary_401k = sim.add_account(:primary) do |plan|
+        plan.beginning.set(
+          type: :_401k,
+          balances: {
+            stocks: 120_000_00,
+            bonds:  80_000_00
+          }
+        )
+      end
+
+      sim.add_account(:primary) do |plan|
+        plan.beginning.set(
+          type: :roth_ira,
+          balances: {
+            stocks: 120_000_00,
+            bonds:  80_000_00
+          }
+        )
+      end
+
+      sim.add_account(:primary) do |plan|
+        plan.beginning.set(
+          type: :brokerage,
+          balances: {
+            stocks: 100_000_00,
+            bonds:  100_000_00
+          }
+        )
+      end
+
+      sim.add_job(:primary) do |plan|
+        plan.beginning do |p|
+          p.set(
+            base: 100_000_00,
+          )
+          p.add_savings_plan(
+            percent: 7,
+            match: 3,
+            account: primary_401k,
+            holding: :stocks
+          )
+        end
+        plan.on(primary_retirement).stop
+      end
+
+      sim.add_social_security(:primary) do |plan|
+        plan.on(primary_retirement).start
+      end
+
+      # Define partner's key events and holdings
+      partner_retirement = Date.new(2033, 5, 1)
+
+      partner_401k = sim.add_account(:partner) do |plan|
+        plan.beginning.set(
+          type: :_401k,
+          balances: {
+            stocks: 200_000_00,
+          }
+        )
+      end
+
+      sim.add_job(:partner) do |plan|
+        plan.beginning do |p|
+          p.set(
+            base: 75_000_00,
+          )
+          p.add_savings_plan(
+            percent: 7,
+            match: 3,
+            account: partner_401k,
+            holding: :stocks
+          )
+        end
+        plan.on(partner_retirement).stop
+      end
+
+      sim.add_social_security(:partner) do |plan|
+        plan.on(partner_retirement).start(
+          pia: 1000_00
+        )
+      end
+
+      # Start by spending the leftovers (after tax and saving) and change to
+      # spending an exact amount in retirement
+
+      sim.add_spending_strategy do |plan|
+        plan.beginning.set(
+          strategy: :remainder
+        )
+
+        plan.on(primary_retirement).set(
+          strategy: :percent,
+          percent: 6
+        )
+      end
+
+      sim.add_tax_strategy do |plan|
+        plan.beginning.set(
+          primary: :married_filing_jointly,
+          partner: :married_filing_jointly
+        )
+      end
+
+      sim.set_debit_strategy(:tax_sequence)
+
+      sim
+    end
+
   end
 end

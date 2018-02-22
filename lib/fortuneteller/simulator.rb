@@ -61,6 +61,7 @@ module FortuneTeller
           monthly_base -= (savings[:percent]/100.0 * monthly_base).round
         end
         monthly_base -= (0.30 * monthly_base).round
+        monthly_base
       end.sum.round
     end
 
@@ -108,7 +109,7 @@ module FortuneTeller
       validate_plan!
 
       #finalize end_date
-      @end_year = youngest_birthday.year + @end_age
+      @end_year = oldest_birthday.year + @end_age
 
       plan_components.each do |c|
         c.build_generators(self)
@@ -150,9 +151,9 @@ module FortuneTeller
         .flat_map(&:values)
     end
 
-    def youngest_birthday
+    def oldest_birthday
       return @primary.birthday if no_partner?
-      [@primary.birthday, @partner.birthday].min
+      [@primary.birthday, @partner.birthday].max
     end
 
     def strategies

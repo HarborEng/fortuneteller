@@ -32,6 +32,14 @@ module FortuneTeller
         @posttax
       end
 
+      def calculate_pretax_amount(posttax:, tax_type:)
+        posttax
+      end
+
+      def calculate_posttax_amount(pretax:, tax_type:)
+        pretax
+      end
+
       private
 
       def build_adjusted_brackets(key)

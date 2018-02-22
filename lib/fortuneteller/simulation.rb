@@ -42,6 +42,8 @@ module FortuneTeller
       )
       @all_transforms.each_with_index do |transforms, year_index|
         @current_year = @start_year+year_index
+        @current_tax_calculator = @tax_calculators[year_index]
+        @current_cashflow = @annual_cashflows[year_index]
         @allocation_strategy.reallocate!(
           sim: self, 
           year_index: year_index, 
@@ -51,7 +53,7 @@ module FortuneTeller
           t.apply_to!(sim: self)
         end
         pass_time_all!(to: Date.new(@current_year+1, 1, 1))
-        @result.set_cashflow(year_index, @annual_cashflows[year_index])
+        @result.set_cashflow(year_index, @current_cashflow)
         @result.set_accounts((year_index+1), @state)
       end
       @result.output
@@ -105,20 +107,20 @@ module FortuneTeller
         amount: amount,
         date: date,
         sim: self,
-        accounts: @state[:accounts]
+        accounts: @state[:accounts],
+        cashflow: @current_cashflow,
+        tax_calculator: @current_tax_calculator
       )
     end
 
     def debit_account!(key:, amount:, date:, pass_time: true)
+      raise ArgumentError, "cannot debit negative amount #{amount} on #{date} to #{key}" if amount < 0
       pass_time_account!(key: key, to: date) if pass_time
 
       start_total = @state[:accounts][key][:total_balance]
 
       # Guaranteed updates
       @state[:accounts][key][:total_balance] -= amount
-      tax_type = FortuneTeller::Account::Component::TAX_MAP[@state[:accounts][key][:type]]
-      @annual_cashflows[(date.year-@start_year)][:posttax]["#{tax_type}_withdrawal".to_sym] += amount
-      @annual_cashflows[(date.year-@start_year)][:posttax][:total] += amount
 
       # Figure out balances
       if(@state[:accounts][key][:total_balance]==0)
@@ -144,6 +146,51 @@ module FortuneTeller
             break if diff == 0
           end
         end
+      end
+    end
+
+    # :amount is posttax
+    def debit_account_dead!(key:, amount:, date:, pass_time: true)
+      pass_time_account!(key: key, to: date) if pass_time
+
+      tax_type = FortuneTeller::Account::Component::TAX_MAP[@state[:accounts][key][:type]]
+      start_total = @state[:accounts][key][:total_balance]
+
+      pretax_amount = @current_tax_calculator.calculate_pretax_amount(posttax: amount, tax_type: tax_type)
+
+      if(pretax_amount > start_total)
+        max_amount = @current_tax_calculator.calculate_posttax_amount(pretax: amount, tax_type: tax_type)
+        @state[:accounts][key][:total_balance] = 0
+        @state[:accounts][key][:balances].transform_values! {|x| 0 }
+        @current_cashflow[:posttax]["#{tax_type}_withdrawal".to_sym] += max_amount
+        @current_cashflow[:posttax][:total] += max_amount
+        {pretax: start_total, posttax: max_amount}
+      else
+        @state[:accounts][key][:total_balance] -= pretax_amount
+        @current_cashflow[:posttax]["#{tax_type}_withdrawal".to_sym] += amount
+        @current_cashflow[:posttax][:total] += amount
+
+        balances = @state[:accounts][key][:balances]
+
+        debited = 0
+        balances.each do |k, v|
+          # prevent over-debit
+          debit = [((v.to_f/start_total)*pretax_amount).round, v].min
+          debited += debit
+          balances[k] -= debit
+        end
+
+        #with over-debit impossible, diff can only be positive
+        diff = pretax_amount - debited 
+        if diff != 0
+          balances.each do |k, v|
+            extra = [diff, v].min
+            diff -= extra
+            balances[k] -= extra
+            break if diff == 0
+          end
+        end
+        {pretax: pretax_amount, posttax: amount}
       end
     end
 
@@ -188,8 +235,8 @@ module FortuneTeller
         year_cashflow[:pretax] = reduce_cashflows(monthly_guaranteed)
         tax_calculator = FortuneTeller::Utils::TaxCalculator.new(
           bracket_lib: tax_brackets, 
-          state: :florida, 
-          filing_status: :single,
+          state: :florida, #Hardcode state with no income tax until simulator can handle state
+          filing_status: :single, #TODO: Resolve
           inflation: @growth_rates.cumulative(:inflation, @start_year, year)
         )
         tax_calculator.set_pretax(year_cashflow[:pretax])

@@ -18,10 +18,19 @@ module FortuneTeller
             desired_debit = sim.inflate_year(amount: current[:amount], year: @date.year)
           else
             # Get the total balance
-            total = 0
+            totals_grouped = {
+              roth: 0,
+              qualified: 0,
+              regular: 0
+            }
             sim.account_keys.each do |k|
               sim.pass_time_account!(key: k, to: @date)
-              total += sim.balance(key: k)
+              totals_grouped[FortuneTeller::Account::Component::TAX_MAP[sim.account_type(key: k)]] += sim.balance(key: k)
+            end
+
+            total = 0
+            totals_grouped.each do |tax_type, amount|
+              total += (amount*FortuneTeller::Utils::TaxCalculator::FLAT[tax_type])
             end
 
             # Now get the percent

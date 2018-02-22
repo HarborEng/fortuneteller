@@ -86,6 +86,10 @@ module FortuneTeller
       @state[:accounts][key][:total_balance]
     end
 
+    def account_type(key:)
+      @state[:accounts][key][:type]
+    end
+
     def pass_time_account!(key:, to:)
       account = @state[:accounts][key]
       if account[:date] == to
@@ -148,51 +152,6 @@ module FortuneTeller
             break if diff == 0
           end
         end
-      end
-    end
-
-    # :amount is posttax
-    def debit_account_dead!(key:, amount:, date:, pass_time: true)
-      pass_time_account!(key: key, to: date) if pass_time
-
-      tax_type = FortuneTeller::Account::Component::TAX_MAP[@state[:accounts][key][:type]]
-      start_total = @state[:accounts][key][:total_balance]
-
-      pretax_amount = @current_tax_calculator.calculate_pretax_amount(posttax: amount, tax_type: tax_type)
-
-      if(pretax_amount > start_total)
-        max_amount = @current_tax_calculator.calculate_posttax_amount(pretax: amount, tax_type: tax_type)
-        @state[:accounts][key][:total_balance] = 0
-        @state[:accounts][key][:balances].transform_values! {|x| 0 }
-        @current_cashflow[:posttax]["#{tax_type}_withdrawal".to_sym] += max_amount
-        @current_cashflow[:posttax][:total] += max_amount
-        {pretax: start_total, posttax: max_amount}
-      else
-        @state[:accounts][key][:total_balance] -= pretax_amount
-        @current_cashflow[:posttax]["#{tax_type}_withdrawal".to_sym] += amount
-        @current_cashflow[:posttax][:total] += amount
-
-        balances = @state[:accounts][key][:balances]
-
-        debited = 0
-        balances.each do |k, v|
-          # prevent over-debit
-          debit = [((v.to_f/start_total)*pretax_amount).round, v].min
-          debited += debit
-          balances[k] -= debit
-        end
-
-        #with over-debit impossible, diff can only be positive
-        diff = pretax_amount - debited 
-        if diff != 0
-          balances.each do |k, v|
-            extra = [diff, v].min
-            diff -= extra
-            balances[k] -= extra
-            break if diff == 0
-          end
-        end
-        {pretax: pretax_amount, posttax: amount}
       end
     end
 

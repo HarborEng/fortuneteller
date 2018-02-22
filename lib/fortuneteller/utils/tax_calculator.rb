@@ -4,27 +4,56 @@ module FortuneTeller
       # This calculator is optimized to calculate how much more income of a particular source
       # is necessary to meet a certain pre-tax goal.
 
-      def initialize(bracket_lib:, state:, filing_status:)
+      def initialize(bracket_lib:, state:, filing_status:, inflation: 1)
         @bracket_lib = bracket_lib
         @state = state
         @filing_status = filing_status
+        @inflation = inflation
         build_brackets
       end
 
-      def calculate_posttax(pretax)
+      def set_pretax(pretax)
+        @pretax = pretax
+        @pretax.default = 0
+      end
+
+      def calculate_posttax
         #Start by matching the test case
-        pretax.default = 0
-        post = {
-          w2_income: (pretax[:w2_income]*0.7).round,
-          gty_income: (pretax[:gty_income]*0.7).round,
-          ss_income: (pretax[:ss_income]*1).round,
+        @posttax = {
+          w2_income: (@pretax[:w2_income]*0.7).round,
+          gty_income: (@pretax[:gty_income]*0.7).round,
+          ss_income: (@pretax[:ss_income]*1).round,
           qualified_withdrawal: 0,
           roth_withdrawal: 0,
           regular_withdrawal: 0,
         }
-        post.default = 0
-        post[:total] = post.values.sum
-        post
+        @posttax.default = 0
+        @posttax[:total] = @posttax.values.sum
+        @posttax
+      end
+
+      def calculate_pretax_amount(posttax:, tax_type:)
+        if tax_type == :qualified
+          (posttax.to_f/0.7).round
+        elsif tax_type == :regular
+          (posttax.to_f/0.8).round
+        elsif tax_type == :roth
+          posttax
+        else
+          raise "tax_type: '#{tax_type}' (#{tax_type.class})  is unknown."
+        end
+      end
+
+      def calculate_posttax_amount(pretax:, tax_type:)
+        if tax_type == :qualified
+          (pretax.to_f*0.7).round
+        elsif tax_type == :regular
+          (pretax.to_f*0.8).round
+        elsif tax_type == :roth
+          pretax
+        else
+          raise "tax_type: '#{tax_type}' (#{tax_type.class})  is unknown."
+        end
       end
 
       private
@@ -125,11 +154,21 @@ module FortuneTeller
         merged
       end
 
+      def inflate_brackets(brackets)
+        brackets.each do |b|
+          [:pretax_min, :pretax_max, :posttax_min, :posttax_max].each do |k|
+            unless b[k].nil?
+              b[k] = (b[k]*@inflation).round
+            end
+          end
+        end
+      end
+
       def build_brackets
-        @merged_brackets = merge_brackets(
+        @brackets = inflate_brackets(merge_brackets(
           build_adjusted_brackets(:federal),
           build_adjusted_brackets(@state),
-        )
+        ))
       end
     end
   end

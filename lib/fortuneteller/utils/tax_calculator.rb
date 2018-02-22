@@ -1,8 +1,14 @@
 module FortuneTeller
   module Utils
     class TaxCalculator
-      # This calculator is optimized to calculate how much more income of a particular source
-      # is necessary to meet a certain pre-tax goal.
+      FLAT = {
+        w2: 0.825,
+        gty: 0.825,
+        ss: 1.0,
+        qualified: 0.825,
+        regular: 0.9,
+        roth: 1.0
+      }
 
       def initialize(bracket_lib:, state:, filing_status:, inflation: 1)
         @bracket_lib = bracket_lib
@@ -20,9 +26,9 @@ module FortuneTeller
       def calculate_posttax
         #Start by matching the test case
         @posttax = {
-          w2_income: (@pretax[:w2_income]*0.7).round,
-          gty_income: (@pretax[:gty_income]*0.7).round,
-          ss_income: (@pretax[:ss_income]*1).round,
+          w2_income: (@pretax[:w2_income]*FLAT[:w2]).round,
+          gty_income: (@pretax[:gty_income]*FLAT[:gty]).round,
+          ss_income: (@pretax[:ss_income]*FLAT[:ss]).round,
           qualified_withdrawal: 0,
           roth_withdrawal: 0,
           regular_withdrawal: 0,
@@ -33,27 +39,13 @@ module FortuneTeller
       end
 
       def calculate_pretax_amount(posttax:, tax_type:)
-        if tax_type == :qualified
-          (posttax.to_f/0.7).round
-        elsif tax_type == :regular
-          (posttax.to_f/0.8).round
-        elsif tax_type == :roth
-          posttax
-        else
-          raise "tax_type: '#{tax_type}' (#{tax_type.class})  is unknown."
-        end
+        raise "tax_type: '#{tax_type}' (#{tax_type.class})  is unknown." if FLAT[tax_type].nil?
+        (posttax.to_f/FLAT[tax_type]).round
       end
 
       def calculate_posttax_amount(pretax:, tax_type:)
-        if tax_type == :qualified
-          (pretax.to_f*0.7).round
-        elsif tax_type == :regular
-          (pretax.to_f*0.8).round
-        elsif tax_type == :roth
-          pretax
-        else
-          raise "tax_type: '#{tax_type}' (#{tax_type.class})  is unknown."
-        end
+        raise "tax_type: '#{tax_type}' (#{tax_type.class})  is unknown." if FLAT[tax_type].nil?
+        (pretax.to_f*FLAT[tax_type]).round
       end
 
       private

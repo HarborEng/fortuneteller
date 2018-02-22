@@ -60,8 +60,7 @@ module FortuneTeller
         plan.savings_plans.each do |savings|
           monthly_base -= (savings[:percent]/100.0 * monthly_base).round
         end
-        monthly_base -= (0.30 * monthly_base).round
-        monthly_base
+        (FortuneTeller::Utils::TaxCalculator::FLAT[:w2] * monthly_base).round
       end.sum.round
     end
 

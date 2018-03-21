@@ -32,17 +32,9 @@ module FortuneTeller
               total += (amount*FortuneTeller::Utils::TaxCalculator::FLAT[tax_type])
             end
 
-            puts "Total year:#{date.year} amt: #{total}"
-
-
-            amount = 0
-            y_i = @data[:end_year] - @date.year
-            if (y_i >= 0)
-              percent = @data[:withdrawal_rates][y_i]
-              puts "Perct year:#{date.year} amt: #{percent}"
-            
-              amount = ( total*(percent.to_f/100.0) / 12.0 ).round
-            end
+            y_i = [(@data[:end_year] - @date.year), 0].max
+            percent = @data[:withdrawal_rates][y_i]
+            amount = ( total*(percent.to_f/100.0) / 12.0 ).round
             sim.instance_set(:spending_strategy, {
               amount: amount,
               year: @data[:day_plan_id]

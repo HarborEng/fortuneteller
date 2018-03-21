@@ -11,6 +11,44 @@ module FortuneTeller
       def apply_to!(sim:)
         if(@data[:strategy] == :exact)
           desired_debit = [sim.inflate_year(amount: @data[:amount], year: @date.year) - sim.guaranteed_take_home(date.year, date.month), 0].max
+        elsif(@data[:strategy] == :dynamic)
+          current = sim.instance_get(:spending_strategy)
+          if(!current.nil? and current[:year] == @date.year)
+            desired_debit = current[:amount]
+          else
+            # first find the total
+            totals_grouped = {
+              roth: 0,
+              qualified: 0,
+              regular: 0
+            }
+            sim.account_keys.each do |k|
+              sim.pass_time_account!(key: k, to: @date)
+              totals_grouped[FortuneTeller::Account::Component::TAX_MAP[sim.account_type(key: k)]] += sim.balance(key: k)
+            end
+
+            total = 0
+            totals_grouped.each do |tax_type, amount|
+              total += (amount*FortuneTeller::Utils::TaxCalculator::FLAT[tax_type])
+            end
+
+            puts "Total year:#{date.year} amt: #{total}"
+
+
+            amount = 0
+            y_i = @data[:end_year] - @date.year
+            if (y_i >= 0)
+              percent = @data[:withdrawal_rates][y_i]
+              puts "Perct year:#{date.year} amt: #{percent}"
+            
+              amount = ( total*(percent.to_f/100.0) / 12.0 ).round
+            end
+            sim.instance_set(:spending_strategy, {
+              amount: amount,
+              year: @data[:day_plan_id]
+            })
+            desired_debit = amount
+          end
         elsif(@data[:strategy] == :percent)
           current = sim.instance_get(:spending_strategy)
           if(!current.nil? and current[:day_plan_id] == @data[:day_plan_id])

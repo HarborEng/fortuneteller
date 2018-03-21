@@ -234,6 +234,11 @@ module FortuneTeller
           strategy: :percent,
           percent: 4
         )
+        # plan.on(primary_retirement).set(
+        #   strategy: :dynamic,
+        #   end_year: 2058,
+        #   withdrawal_rates: [3.70,3.78,3.85,3.90,4,4.10,4.20,4.30,4.50,4.70,4.80,5.00,5.15,5.40,5.70,6.00,6.20,6.85,7.30,7.55,8.70,9.70,10.70,12.15,14.15,16.53,20.27,20.27,20.27,20.27].reverse
+        # )
       end
 
       sim.add_tax_strategy do |plan|

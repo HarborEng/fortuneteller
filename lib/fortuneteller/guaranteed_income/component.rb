@@ -8,7 +8,8 @@ module FortuneTeller
 
         simulator.years.each do |year|
           data = (1..12).map do |month|
-            day_plan = reader.on(Date.new(year, month, day))
+            date = Date.new(year, month, day) rescue Date.new(year, month, -1)
+            day_plan = reader.on(date)
             (day_plan.nil? ? nil : day_plan.generator_data(year, month))
           end
           generators[year] = FortuneTeller::GuaranteedIncome::Generator.new(data: data, holder: holder, year: year)
